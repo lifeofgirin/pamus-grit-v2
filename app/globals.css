@@ -1,1 +1,402 @@
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{background:#f4f7fb;color:#18212f;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Segoe UI",sans-serif}.page-shell{min-height:100vh;padding:32px 18px;display:grid;place-items:center}.hero-card{width:min(720px,100%);padding:48px;border:1px solid #e6ebf2;border-radius:30px;background:#fff;box-shadow:0 30px 80px rgba(43,59,92,.12)}.brand-chip{width:fit-content;padding:8px 12px;border-radius:999px;background:#eef3ff;color:#3157d5;font-size:11px;font-weight:900;letter-spacing:.12em}h1{margin:22px 0 14px;font-size:clamp(38px,7vw,62px);line-height:1.06;letter-spacing:-.055em}h1 span{color:#3157d5}.hero-copy{margin:0;color:#778398;font-size:15px;font-weight:650;line-height:1.7}.status-card{margin-top:34px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;border:1px solid #e6ebf2;border-radius:18px;background:#fbfcfe}.status-label{color:#9aa5b6;font-size:9px;font-weight:900;letter-spacing:.14em}.status-title{margin-top:5px;font-size:14px;font-weight:900}.dot{width:12px;height:12px;border-radius:50%;background:#e0a12c;box-shadow:0 0 0 6px rgba(224,161,44,.12)}.dot.ok{background:#18a66a;box-shadow:0 0 0 6px rgba(24,166,106,.12)}.feature-grid{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.feature-grid article{min-height:128px;padding:16px;display:flex;flex-direction:column;border:1px solid #e6ebf2;border-radius:18px;background:white}.feature-grid strong{color:#3157d5;font-size:10px}.feature-grid span{margin-top:auto;font-size:13px;font-weight:900}.feature-grid small{margin-top:4px;color:#778398;font-size:9px;font-weight:750}.footer-note{margin-top:18px;padding:12px 14px;border-radius:13px;background:#f7f9fc;color:#667489;font-size:10px;font-weight:750;line-height:1.5}@media(max-width:640px){.hero-card{padding:28px 20px;border-radius:24px}.feature-grid{grid-template-columns:1fr}.feature-grid article{min-height:92px}}
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #f3f6fb;
+  --card: #ffffff;
+  --text: #121a29;
+  --muted: #748198;
+  --line: #e4e9f1;
+  --primary: #3157d5;
+  --primary-dark: #2443ab;
+  --primary-soft: #edf2ff;
+  --danger: #c2414c;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 5%, #e3ebff 0, transparent 30%),
+    radial-gradient(circle at 85% 92%, #e7f7ef 0, transparent 28%),
+    var(--bg);
+  color: var(--text);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Pretendard",
+    "Segoe UI", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 28px 18px 60px;
+}
+
+.centered {
+  display: grid;
+  place-items: center;
+}
+
+.loading-card,
+.login-card,
+.dashboard {
+  width: min(1050px, 100%);
+}
+
+.loading-card {
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(38, 52, 84, .1);
+}
+
+.login-card {
+  max-width: 430px;
+  padding: 42px 34px 32px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 30px 80px rgba(38, 52, 84, .13);
+}
+
+.brand-mark {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.brand-label {
+  margin-top: 18px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.login-card h1 {
+  margin: 10px 0 8px;
+  font-size: 32px;
+  letter-spacing: -.045em;
+}
+
+.login-copy {
+  margin: 0 0 25px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.pin-input {
+  width: 100%;
+  height: 70px;
+  border: 1px solid #ced6e3;
+  border-radius: 17px;
+  outline: none;
+  background: #fbfcfe;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: .38em;
+  text-align: center;
+}
+
+.pin-input:focus {
+  border-color: #91a7f5;
+  box-shadow: 0 0 0 4px rgba(49, 87, 213, .09);
+}
+
+.error-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: #fff0f1;
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.login-button {
+  width: 100%;
+  height: 52px;
+  margin-top: 13px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.login-button:hover {
+  background: var(--primary-dark);
+}
+
+.login-button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.login-foot {
+  margin-top: 21px;
+  color: #a0a9b8;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dashboard {
+  margin: 0 auto;
+}
+
+.topbar {
+  padding: 7px 2px 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.dashboard-title {
+  margin: 7px 0 5px;
+  font-size: clamp(28px, 4.5vw, 45px);
+  letter-spacing: -.05em;
+}
+
+.date-text {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.top-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.refresh-button,
+.logout-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.refresh-button {
+  border: 1px solid #cfd8f5;
+  background: #f5f7ff;
+  color: var(--primary-dark);
+}
+
+.logout-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #596579;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.summary-strip > div {
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .92);
+}
+
+.summary-strip span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.summary-strip strong {
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.lesson-panel {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 25px 70px rgba(38, 52, 84, .08);
+}
+
+.section-head {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.section-kicker {
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.section-head h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  letter-spacing: -.035em;
+}
+
+.loading-text {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.lesson-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lesson-card {
+  min-height: 82px;
+  padding: 13px 15px;
+  display: grid;
+  grid-template-columns: 75px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fbfcfe;
+}
+
+.lesson-time {
+  display: flex;
+  flex-direction: column;
+}
+
+.lesson-time strong {
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.lesson-time span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.lesson-name {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.lesson-meta {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lesson-meta span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: #4861a9;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.schedule-code {
+  color: #a0a9b8;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.empty-state {
+  padding: 42px 15px;
+  border: 1px dashed #ccd5e3;
+  border-radius: 15px;
+  color: #9aa5b6;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.next-note {
+  margin-top: 12px;
+  padding: 13px 15px;
+  border-radius: 13px;
+  background: #eef3ff;
+  color: #5369ae;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+  .app-shell {
+    padding: 18px 10px 40px;
+  }
+
+  .login-card {
+    padding: 31px 22px 26px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+  }
+
+  .top-actions button {
+    flex: 1;
+  }
+
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .lesson-panel {
+    padding: 15px;
+    border-radius: 19px;
+  }
+
+  .lesson-card {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .schedule-code {
+    display: none;
+  }
+}

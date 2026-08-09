@@ -6,7 +6,9 @@ export const metadata: Metadata = {
   description: "Pamus Grit Academy Management v2",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <body>{children}</body>
