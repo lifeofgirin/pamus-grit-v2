@@ -1144,3 +1144,96 @@ input {
   font-weight: 950;
   letter-spacing: .08em;
 }
+
+
+/* =========================================
+   v5.3 관리자 선생님별 주간 간단 보기
+========================================= */
+
+.admin-week-caption {
+  margin-top: 5px;
+  color: #7f8ba0;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.teacher-week-filter {
+  margin: -2px 0 14px;
+  padding: 6px;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f8fafd;
+  scrollbar-width: thin;
+}
+
+.teacher-filter-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid #d9e0ec;
+  border-radius: 9px;
+  background: #fff;
+  color: #69768a;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.teacher-filter-button:hover {
+  border-color: #aebcf0;
+  color: var(--primary);
+}
+
+.teacher-filter-button.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(49,87,213,.18);
+}
+
+.compact-admin-week {
+  grid-template-columns: repeat(5, minmax(155px, 1fr));
+}
+
+.compact-admin-week .week-day-column {
+  min-width: 155px;
+}
+
+.compact-admin-week .week-day-lessons {
+  min-height: 190px;
+}
+
+.compact-week-card {
+  padding: 8px 9px;
+}
+
+.compact-week-card .week-card-top strong {
+  font-size: 11px;
+}
+
+.compact-week-card .lesson-name {
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.compact-week-card .lesson-subject {
+  margin-top: 2px;
+  font-size: 7px;
+}
+
+.compact-week-card .op-badge {
+  margin-top: 4px;
+}
+
+@media (max-width: 650px) {
+  .teacher-week-filter {
+    margin-bottom: 10px;
+  }
+
+  .compact-admin-week {
+    grid-template-columns: repeat(5, 150px);
+  }
+}
