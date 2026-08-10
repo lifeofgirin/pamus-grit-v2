@@ -594,11 +594,10 @@ export default function Home(){
                  }}
                  onClick={()=>openLesson(l)}
                >
-                 <div className="tt-lesson-time">
-                   {l.start_time?.slice(0,5)}–{l.end_time?.slice(0,5)}
+                 <div className="tt-lesson-simple">
+                   <strong>{l.classes?.class_name}</strong>
+                   <span>{l.start_time?.slice(0,5)}-{l.end_time?.slice(0,5)}</span>
                  </div>
-                 <strong>{l.classes?.class_name}</strong>
-                 <span>{l.subject} · {room(l.room)}</span>
                  {l.operationStatus!=='정상'&&<em>{l.operationStatus}</em>}
                </button>)}
              </div>)}
