@@ -1675,3 +1675,219 @@ input {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================
+   v8 A4 주간 시간표 프린트
+========================================= */
+
+.print-toolbar {
+  margin: 0 0 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafd;
+}
+
+.print-day-picker {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.print-day-button {
+  min-width: 38px;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #d7dfeb;
+  border-radius: 8px;
+  background: #fff;
+  color: #758197;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.print-day-button.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.print-action-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: #202939;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-width: 0 !important;
+    background: #fff !important;
+  }
+
+  body.printing-schedule * {
+    visibility: hidden !important;
+  }
+
+  body.printing-schedule .printable-schedule,
+  body.printing-schedule .printable-schedule * {
+    visibility: visible !important;
+  }
+
+  body.printing-schedule .printable-schedule {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  body.printing-schedule .no-print,
+  body.printing-schedule .week-nav,
+  body.printing-schedule .teacher-week-filter,
+  body.printing-schedule .summary-copy-buttons,
+  body.printing-schedule .class-summary-section,
+  body.printing-schedule .board-help,
+  body.printing-schedule .print-day-hidden {
+    display: none !important;
+  }
+
+  body.printing-schedule .weekly-toolbar {
+    margin: 0 0 5mm !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  body.printing-schedule .weekly-toolbar h2 {
+    margin: 0 !important;
+    color: #000 !important;
+    font-size: 18pt !important;
+    font-weight: 900 !important;
+  }
+
+  body.printing-schedule .section-kicker {
+    color: #666 !important;
+    font-size: 7pt !important;
+  }
+
+  body.printing-schedule .admin-week-caption {
+    color: #555 !important;
+    font-size: 8pt !important;
+  }
+
+  body.printing-schedule .class-week-title {
+    margin: 0 0 4mm !important;
+  }
+
+  body.printing-schedule .class-week-title strong {
+    color: #000 !important;
+    font-size: 16pt !important;
+  }
+
+  body.printing-schedule .week-board,
+  body.printing-schedule .class-week-board,
+  body.printing-schedule .compact-admin-week {
+    display: grid !important;
+    grid-template-columns: repeat(var(--print-column-count, 5), minmax(0, 1fr)) !important;
+    gap: 2.5mm !important;
+    overflow: visible !important;
+  }
+
+  body.printing-schedule .week-day-column {
+    min-width: 0 !important;
+    break-inside: avoid !important;
+    border: 1px solid #bbb !important;
+    border-radius: 3mm !important;
+    background: #fff !important;
+  }
+
+  body.printing-schedule .week-day-head {
+    padding: 2.5mm !important;
+    border-bottom: 1px solid #ccc !important;
+    background: #f4f4f4 !important;
+  }
+
+  body.printing-schedule .week-day-head strong {
+    color: #000 !important;
+    font-size: 11pt !important;
+  }
+
+  body.printing-schedule .week-day-head span,
+  body.printing-schedule .week-day-head small {
+    color: #555 !important;
+    font-size: 7pt !important;
+  }
+
+  body.printing-schedule .week-day-lessons {
+    min-height: 0 !important;
+    padding: 2mm !important;
+  }
+
+  body.printing-schedule .week-lesson-card {
+    margin: 0 0 1.5mm !important;
+    padding: 2mm !important;
+    border: 1px solid #d2d2d2 !important;
+    border-radius: 2mm !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body.printing-schedule .week-card-top strong,
+  body.printing-schedule .lesson-name {
+    color: #000 !important;
+    font-size: 8pt !important;
+  }
+
+  body.printing-schedule .lesson-subject,
+  body.printing-schedule .teacher-chip,
+  body.printing-schedule .week-card-top span {
+    color: #444 !important;
+    font-size: 6.5pt !important;
+  }
+
+  body.printing-schedule .op-badge {
+    border: 1px solid #777 !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  body.printing-schedule .makeup {
+    border: 1.5px solid #555 !important;
+  }
+
+  body.printing-schedule .cancelled {
+    opacity: .55 !important;
+    text-decoration: line-through !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .print-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .print-action-button {
+    width: 100%;
+  }
+}

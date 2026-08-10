@@ -36,6 +36,7 @@ export default function Home(){
  const[accessibleClasses,setAccessibleClasses]=useState<{id:string;class_code:string;class_name:string}[]>([]);
  const[workData,setWorkData]=useState<any>(null);
  const[workBusy,setWorkBusy]=useState(false);
+ const[printDays,setPrintDays]=useState<number[]>([1,2,3,4,5]);
  const[changeForm,setChangeForm]=useState<any>({}),[eventForm,setEventForm]=useState<any>({eventType:"기타"});
  useEffect(()=>{restore()},[]); useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
  const groups=useMemo(()=>ROOMS.map(r=>({room:r,lessons:lessons.filter(l=>room(l.room)===r)})),[lessons]);
@@ -258,12 +259,12 @@ export default function Home(){
 
     if(lines.length>1){
       blocks.push(
-        lines.join('\\n')
+        lines.join('\n')
       );
     }
   });
 
-  return blocks.join('\\n\\n');
+  return blocks.join('\n\n');
  }
 
  async function copySummary(mode:"progress"|"homework"|"all"){
@@ -282,6 +283,26 @@ export default function Home(){
   }catch{
     setToast('클립보드 복사에 실패했습니다.');
   }
+ }
+
+ function togglePrintDay(day:number){
+  setPrintDays(current=>{
+    if(current.includes(day)){
+      const next=current.filter(d=>d!==day);
+      return next.length?next:current;
+    }
+    return [...current,day].sort();
+  });
+ }
+
+ function printCurrentSchedule(){
+  document.body.classList.add('printing-schedule');
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.body.classList.remove('printing-schedule');
+    },300);
+  },100);
  }
 
  async function logout(){await fetch('/api/logout',{method:'POST'});setUser(null);setLessons([]);setWeekDays([]);setSelected(null);setAccessibleClasses([]);setClassWeekData(null);setClassWeekClassId('');setWorkData(null)}
@@ -440,7 +461,7 @@ export default function Home(){
                </button>)}
          </div>}
    </>}
-  </section>:view==='weekly'?<section className="schedule-panel">
+  </section>:view==='weekly'?<section className="schedule-panel printable-schedule">
    <div className="weekly-toolbar">
      <div>
        <div className="section-kicker">WEEKLY SCHEDULE</div>
@@ -453,6 +474,20 @@ export default function Home(){
        <button onClick={()=>loadWeek(add(weekStart||weekBase,7))}>다음주 ›</button>
      </div>
    </div>
+
+   {user.role==='admin'&&<div className="print-toolbar no-print">
+     <div className="print-day-picker">
+       {[1,2,3,4,5].map(day=><button
+         type="button"
+         key={day}
+         className={`print-day-button ${printDays.includes(day)?'active':''}`}
+         onClick={()=>togglePrintDay(day)}
+       >
+         {DAYS[day]}
+       </button>)}
+     </div>
+     <button type="button" className="print-action-button" onClick={printCurrentSchedule}>A4 인쇄</button>
+   </div>}
 
    {user.role==='admin'&&<div className="teacher-week-filter">
      <button
@@ -472,8 +507,11 @@ export default function Home(){
 
    {busy&&<div className="weekly-state-box">주간 시간표를 불러오는 중입니다.</div>}
    {!busy&&weekDays.length===0&&<div className="weekly-state-box">표시할 주간 데이터가 없습니다.</div>}
-   {!busy&&weekDays.length>0&&<div className={user.role==='admin'&&adminWeekTeacher?'week-board compact-admin-week':'week-board'}>
-     {(user.role==='admin'?visibleWeekDays():weekDays).map(d=><section className="week-day-column" key={d.date}>
+   {!busy&&weekDays.length>0&&<div
+     className={user.role==='admin'&&adminWeekTeacher?'week-board compact-admin-week':'week-board'}
+     style={{'--print-column-count':Math.max(printDays.length,1)} as React.CSSProperties}
+   >
+     {(user.role==='admin'?visibleWeekDays():weekDays).map(d=><section className={`week-day-column ${!printDays.includes(d.dayOfWeek)?'print-day-hidden':''}`} key={d.date}>
        <div className="week-day-head">
          <strong>{DAYS[d.dayOfWeek]}</strong>
          <span>{short(d.date)}</span>
@@ -503,7 +541,7 @@ export default function Home(){
        </div>
      </section>)}
    </div>}
-  </section>:<section className="schedule-panel class-week-panel">
+  </section>:<section className="schedule-panel class-week-panel printable-schedule">
    <div className="weekly-toolbar">
      <div>
        <div className="section-kicker">CLASS WEEKLY</div>
@@ -531,12 +569,26 @@ export default function Home(){
        {accessibleClasses.map(c=><option key={c.id} value={c.id}>{c.class_name}</option>)}
      </select>
 
-     <div className="summary-copy-buttons">
+     <div className="summary-copy-buttons no-print">
        <button onClick={()=>copySummary('progress')}>진도 복사</button>
        <button onClick={()=>copySummary('homework')}>숙제 복사</button>
        <button onClick={()=>copySummary('all')}>전체 복사</button>
      </div>
    </div>
+
+   {user.role==='admin'&&<div className="print-toolbar no-print">
+     <div className="print-day-picker">
+       {[1,2,3,4,5].map(day=><button
+         type="button"
+         key={day}
+         className={`print-day-button ${printDays.includes(day)?'active':''}`}
+         onClick={()=>togglePrintDay(day)}
+       >
+         {DAYS[day]}
+       </button>)}
+     </div>
+     <button type="button" className="print-action-button" onClick={printCurrentSchedule}>A4 인쇄</button>
+   </div>}
 
    {classWeekBusy&&<div className="weekly-state-box">반별 주간 정보를 불러오는 중입니다.</div>}
 
@@ -548,8 +600,11 @@ export default function Home(){
        <span>{short(classWeekData.weekStart)} ~ {short(classWeekData.weekEnd)}</span>
      </div>
 
-     <div className="week-board class-week-board">
-       {(classWeekData.days||[]).map((d:any)=><section className="week-day-column" key={d.date}>
+     <div
+       className="week-board class-week-board"
+       style={{'--print-column-count':Math.max(printDays.length,1)} as React.CSSProperties}
+     >
+       {(classWeekData.days||[]).map((d:any)=><section className={`week-day-column ${!printDays.includes(d.dayOfWeek)?'print-day-hidden':''}`} key={d.date}>
          <div className="week-day-head">
            <strong>{DAYS[d.dayOfWeek]}</strong>
            <span>{short(d.date)}</span>
