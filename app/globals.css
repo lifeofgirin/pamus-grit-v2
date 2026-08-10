@@ -1891,3 +1891,202 @@ input {
     width: 100%;
   }
 }
+
+
+/* =========================================
+   v8.1 선생님 개별 주간 타임테이블
+========================================= */
+
+.teacher-timetable-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.teacher-timetable {
+  min-width: 820px;
+  display: grid;
+  grid-template-columns: 66px repeat(5, minmax(145px, 1fr));
+  grid-template-rows: 54px auto;
+}
+
+.tt-corner,
+.tt-day-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  border-bottom: 1px solid #dfe5ee;
+  background: #f7f9fc;
+}
+
+.tt-corner {
+  padding: 19px 8px 0;
+  border-right: 1px solid #dfe5ee;
+  color: #8a95a7;
+  font-size: 8px;
+  font-weight: 950;
+  text-align: center;
+}
+
+.tt-day-head {
+  padding: 9px 10px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-right: 1px solid #e7ebf1;
+  text-align: center;
+}
+
+.tt-day-head strong {
+  color: #25324a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.tt-day-head span {
+  color: #8490a3;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.tt-day-head small {
+  overflow: hidden;
+  color: #8b6d2d;
+  font-size: 6.5px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tt-time-axis {
+  position: relative;
+  grid-column: 1;
+  border-right: 1px solid #dfe5ee;
+  background: #fbfcfe;
+}
+
+.tt-time-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding-right: 8px;
+  color: #8b96a7;
+  font-size: 8px;
+  font-weight: 850;
+  text-align: right;
+}
+
+.tt-day-lane {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid #edf0f4;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 29px,
+      rgba(230,234,241,.45) 30px,
+      transparent 31px
+    );
+  background-size: 100% 60px;
+}
+
+.tt-day-lane:last-child {
+  border-right: 0;
+}
+
+.tt-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e6eaf0;
+  pointer-events: none;
+}
+
+.tt-lesson {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  z-index: 2;
+  min-height: 38px;
+  padding: 6px 7px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid #cfd8f5;
+  border-radius: 9px;
+  background: #f5f7ff;
+  color: #263650;
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(50,72,130,.06);
+}
+
+.tt-lesson:hover {
+  z-index: 3;
+  border-color: #90a6ee;
+  box-shadow: 0 7px 17px rgba(49,87,213,.12);
+}
+
+.tt-lesson-time {
+  color: #65749a;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.tt-lesson strong {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tt-lesson span {
+  overflow: hidden;
+  color: #738097;
+  font-size: 7px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tt-lesson em {
+  width: fit-content;
+  margin-top: 2px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.75);
+  color: inherit;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.tt-lesson.makeup {
+  border-color: #9dd8b2;
+  background: #eefaf2;
+}
+
+.tt-lesson.cancelled {
+  border-color: #efb5b5;
+  background: #fff2f2;
+  opacity: .75;
+}
+
+@media (max-width: 650px) {
+  .teacher-timetable {
+    min-width: 760px;
+    grid-template-columns: 58px repeat(5, minmax(136px, 1fr));
+  }
+
+  .tt-lesson {
+    left: 4px;
+    right: 4px;
+    padding: 5px 6px;
+  }
+}

@@ -22,6 +22,16 @@ const add=(d:string,n:number)=>{
   x.setUTCDate(x.getUTCDate()+n);
   return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${String(x.getUTCDate()).padStart(2,"0")}`;
 };
+const TT_START=10*60;
+const TT_END=20*60;
+const TT_PX_PER_MIN=1;
+const toMinutes=(v:string)=>{
+  const [h,m]=String(v||"00:00").slice(0,5).split(":").map(Number);
+  return h*60+m;
+};
+const ttTop=(v:string)=>Math.max(0,(toMinutes(v)-TT_START)*TT_PX_PER_MIN);
+const ttHeight=(start:string,end:string)=>Math.max(38,(toMinutes(end)-toMinutes(start))*TT_PX_PER_MIN);
+const TT_HOURS=Array.from({length:11},(_,i)=>10+i);
 
 export default function Home(){
  const[loading,setLoading]=useState(true),[loginLoading,setLoginLoading]=useState(false),[pin,setPin]=useState(""),[error,setError]=useState("");
@@ -507,40 +517,94 @@ export default function Home(){
 
    {busy&&<div className="weekly-state-box">주간 시간표를 불러오는 중입니다.</div>}
    {!busy&&weekDays.length===0&&<div className="weekly-state-box">표시할 주간 데이터가 없습니다.</div>}
-   {!busy&&weekDays.length>0&&<div
-     className={user.role==='admin'&&adminWeekTeacher?'week-board compact-admin-week':'week-board'}
-     style={{'--print-column-count':Math.max(printDays.length,1)} as React.CSSProperties}
-   >
-     {(user.role==='admin'?visibleWeekDays():weekDays).map(d=><section className={`week-day-column ${!printDays.includes(d.dayOfWeek)?'print-day-hidden':''}`} key={d.date}>
-       <div className="week-day-head">
-         <strong>{DAYS[d.dayOfWeek]}</strong>
-         <span>{short(d.date)}</span>
-         <small>{d.lessons.length}개</small>
-       </div>
-
-       {d.events?.length>0&&<div className="week-events">
-         {d.events.map(e=><span key={e.id}>{e.event_type} · {e.title}</span>)}
-       </div>}
-
-       <div className="week-day-lessons">
-         {d.lessons.length?d.lessons.map(l=><button
-           key={l.schedule_code}
-           className={`week-lesson-card ${statusClass(l)} ${user.role==='admin'&&adminWeekTeacher?'compact-week-card':''}`}
-           onClick={()=>openLesson(l)}
-           onContextMenu={e=>{if(user.role==='admin'&&!l.isCustomMakeup){e.preventDefault();openChange(l)}}}
+   {!busy&&weekDays.length>0&&(
+     user.role==='admin'
+       ? <div
+           className={adminWeekTeacher?'week-board compact-admin-week':'week-board'}
+           style={{'--print-column-count':Math.max(printDays.length,1)} as React.CSSProperties}
          >
-           <div className="week-card-top">
-             <strong>{l.start_time?.slice(0,5)}</strong>
-             <span>{room(l.room)}</span>
+           {visibleWeekDays().map(d=><section className={`week-day-column ${!printDays.includes(d.dayOfWeek)?'print-day-hidden':''}`} key={d.date}>
+             <div className="week-day-head">
+               <strong>{DAYS[d.dayOfWeek]}</strong>
+               <span>{short(d.date)}</span>
+               <small>{d.lessons.length}개</small>
+             </div>
+
+             {d.events?.length>0&&<div className="week-events">
+               {d.events.map(e=><span key={e.id}>{e.event_type} · {e.title}</span>)}
+             </div>}
+
+             <div className="week-day-lessons">
+               {d.lessons.length?d.lessons.map(l=><button
+                 key={l.schedule_code}
+                 className={`week-lesson-card ${statusClass(l)} ${adminWeekTeacher?'compact-week-card':''}`}
+                 onClick={()=>openLesson(l)}
+                 onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}
+               >
+                 <div className="week-card-top">
+                   <strong>{l.start_time?.slice(0,5)}</strong>
+                   <span>{room(l.room)}</span>
+                 </div>
+                 <div className="lesson-name">{l.classes?.class_name}</div>
+                 <div className="lesson-subject">{l.subject}</div>
+                 {!adminWeekTeacher&&<div className="teacher-chip">{l.teachers?.teacher_name}</div>}
+                 {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
+               </button>):<div className="week-empty">수업 없음</div>}
+             </div>
+           </section>)}
+         </div>
+       : <div className="teacher-timetable-wrap">
+           <div className="teacher-timetable">
+             <div className="tt-corner">TIME</div>
+
+             {weekDays.map(d=><div className="tt-day-head" key={`head_${d.date}`}>
+               <strong>{DAYS[d.dayOfWeek]}</strong>
+               <span>{short(d.date)}</span>
+               {d.events?.length>0&&<small>{d.events.map(e=>e.title).join(' · ')}</small>}
+             </div>)}
+
+             <div className="tt-time-axis" style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}>
+               {TT_HOURS.map(hour=><div
+                 className="tt-time-label"
+                 key={hour}
+                 style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+               >
+                 {String(hour).padStart(2,'0')}:00
+               </div>)}
+             </div>
+
+             {weekDays.map(d=><div
+               className="tt-day-lane"
+               key={`lane_${d.date}`}
+               style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
+             >
+               {TT_HOURS.map(hour=><div
+                 className="tt-hour-line"
+                 key={`${d.date}_${hour}`}
+                 style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+               />)}
+
+               {d.lessons.map(l=><button
+                 type="button"
+                 key={`${d.date}_${l.schedule_code}`}
+                 className={`tt-lesson ${statusClass(l)}`}
+                 style={{
+                   top:ttTop(l.start_time),
+                   height:ttHeight(l.start_time,l.end_time)
+                 }}
+                 onClick={()=>openLesson(l)}
+               >
+                 <div className="tt-lesson-time">
+                   {l.start_time?.slice(0,5)}–{l.end_time?.slice(0,5)}
+                 </div>
+                 <strong>{l.classes?.class_name}</strong>
+                 <span>{l.subject} · {room(l.room)}</span>
+                 {l.operationStatus!=='정상'&&<em>{l.operationStatus}</em>}
+               </button>)}
+             </div>)}
            </div>
-           <div className="lesson-name">{l.classes?.class_name}</div>
-           <div className="lesson-subject">{l.subject}</div>
-           {user.role==='admin'&&!adminWeekTeacher&&<div className="teacher-chip">{l.teachers?.teacher_name}</div>}
-           {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
-         </button>):<div className="week-empty">수업 없음</div>}
-       </div>
-     </section>)}
-   </div>}
+         </div>
+   )}
   </section>:<section className="schedule-panel class-week-panel printable-schedule">
    <div className="weekly-toolbar">
      <div>
