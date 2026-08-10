@@ -1249,3 +1249,184 @@ input {
   font-weight: 850;
   text-align: center;
 }
+
+
+/* =========================================
+   v6 반별 주간 + 진도/숙제 통합 요약
+========================================= */
+
+.class-week-panel {
+  overflow: visible;
+}
+
+.class-week-toolbar {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.class-week-toolbar select {
+  min-width: 220px;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #d6ddea;
+  border-radius: 10px;
+  background: #fff;
+  color: #39475d;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.summary-copy-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.summary-copy-buttons button {
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid #cfd8f5;
+  border-radius: 9px;
+  background: #f7f9ff;
+  color: #3157d5;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.class-week-title {
+  margin: 4px 0 9px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.class-week-title strong {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.class-week-title span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.class-week-board {
+  margin-bottom: 18px;
+}
+
+.class-week-card {
+  cursor: default;
+}
+
+.class-summary-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.class-summary-section h3 {
+  margin: 4px 0 12px;
+  font-size: 19px;
+  letter-spacing: -.035em;
+}
+
+.class-summary-list {
+  display: grid;
+  gap: 13px;
+}
+
+.summary-date-group {
+  display: grid;
+  gap: 6px;
+}
+
+.summary-date-head {
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: #f0f3f8;
+  color: #536074;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.summary-record-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.summary-record-head {
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-record-head strong {
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.summary-record-head span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: #5369ae;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.summary-content-row {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.summary-content-row:first-of-type {
+  border-top: 0;
+}
+
+.summary-content-row b {
+  color: #718096;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.summary-content-row p {
+  margin: 0;
+  color: #273449;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+  .class-week-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .class-week-toolbar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .summary-copy-buttons {
+    width: 100%;
+  }
+
+  .summary-copy-buttons button {
+    flex: 1;
+  }
+
+  .summary-content-row {
+    grid-template-columns: 34px 1fr;
+  }
+}
