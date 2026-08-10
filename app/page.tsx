@@ -134,30 +134,139 @@ export default function Home(){
 
  function summaryText(mode:"progress"|"homework"|"all"){
   if(!classWeekData)return "";
-  const className=classWeekData.classInfo?.class_name||'반';
-  const records=Array.isArray(classWeekData.records)?classWeekData.records:[];
-  const dates=[...new Set(records.map((r:any)=>r.lesson_date))] as string[];
+
+  const className=
+    classWeekData.classInfo?.class_name||
+    '반';
+
+  const records=
+    Array.isArray(classWeekData.records)
+      ?classWeekData.records
+      :[];
+
+  const dates=[
+    ...new Set(
+      records.map(
+        (r:any)=>r.lesson_date
+      )
+    )
+  ] as string[];
+
   const blocks:string[]=[];
 
   dates.forEach((lessonDate)=>{
-    const rows=records.filter((r:any)=>r.lesson_date===lessonDate);
-    const lines=[`[${className} ${short(lessonDate)}]`];
+    const rows=
+      records.filter(
+        (r:any)=>
+          r.lesson_date===lessonDate
+      );
 
-    rows.forEach((r:any)=>{
-      if(mode==='progress'||mode==='all'){
-        const value=String(r.progress||'').trim();
-        if(value)lines.push(`- ${r.teacher_name} · ${r.subject||'수업'}\n  진도: ${value}`);
-      }
-      if(mode==='homework'||mode==='all'){
-        const value=String(r.homework||'').trim();
-        if(value)lines.push(`- ${r.teacher_name} · ${r.subject||'수업'}\n  숙제: ${value}`);
-      }
-    });
+    const dateText=
+      short(lessonDate)
+        .replace(
+          /^0?/,
+          ''
+        );
 
-    if(lines.length>1)blocks.push(lines.join('\n'));
+    const lines=[
+      `[${className} ${dateText}]`
+    ];
+
+    if(mode==='progress'){
+      const progressLines=
+        rows
+          .map((r:any)=>{
+            const value=
+              String(
+                r.progress||''
+              ).trim();
+
+            if(!value)return null;
+
+            return `${r.teacher_name} 진도: ${value}`;
+          })
+          .filter(Boolean);
+
+      lines.push(
+        ...progressLines as string[]
+      );
+    }
+
+    if(mode==='homework'){
+      const homeworkLines=
+        rows
+          .map((r:any)=>{
+            const value=
+              String(
+                r.homework||''
+              ).trim();
+
+            if(!value)return null;
+
+            return `${r.teacher_name} 숙제: ${value}`;
+          })
+          .filter(Boolean);
+
+      lines.push(
+        ...homeworkLines as string[]
+      );
+    }
+
+    if(mode==='all'){
+      const progressLines=
+        rows
+          .map((r:any)=>{
+            const value=
+              String(
+                r.progress||''
+              ).trim();
+
+            if(!value)return null;
+
+            return `${r.teacher_name} 진도: ${value}`;
+          })
+          .filter(Boolean) as string[];
+
+      const homeworkLines=
+        rows
+          .map((r:any)=>{
+            const value=
+              String(
+                r.homework||''
+              ).trim();
+
+            if(!value)return null;
+
+            return `${r.teacher_name} 숙제: ${value}`;
+          })
+          .filter(Boolean) as string[];
+
+      if(progressLines.length){
+        lines.push(
+          '',
+          ...progressLines
+        );
+      }
+
+      if(homeworkLines.length){
+        lines.push(
+          '',
+          ...homeworkLines
+        );
+      }
+    }
+
+    if(lines.length>1){
+      blocks.push(
+        lines.join('
+')
+      );
+    }
   });
 
-  return blocks.join('\n\n');
+  return blocks.join('
+
+');
  }
 
  async function copySummary(mode:"progress"|"homework"|"all"){
