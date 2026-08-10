@@ -1237,3 +1237,15 @@ input {
     grid-template-columns: repeat(5, 150px);
   }
 }
+
+/* v5.3.1 관리자 주간 안정화 */
+.weekly-state-box {
+  padding: 36px 15px;
+  border: 1px dashed #cfd7e5;
+  border-radius: 13px;
+  background: #fafbfd;
+  color: #8d98aa;
+  font-size: 10px;
+  font-weight: 850;
+  text-align: center;
+}

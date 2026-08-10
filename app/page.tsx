@@ -28,20 +28,20 @@ export default function Home(){
  useEffect(()=>{restore()},[]); useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
  const groups=useMemo(()=>ROOMS.map(r=>({room:r,lessons:lessons.filter(l=>room(l.room)===r)})),[lessons]);
  const pending=lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length;
- const adminFilteredWeekDays=useMemo(()=>{
-   if(user?.role!=="admin"||!adminWeekTeacher)return weekDays;
-   return weekDays.map(d=>({
-     ...d,
-     lessons:d.lessons.filter(l=>l.teacher_id===adminWeekTeacher)
-   }));
- },[weekDays,adminWeekTeacher,user?.role]);
  const selectedAdminTeacher=meta.teachers.find(t=>t.id===adminWeekTeacher)||null;
+ function visibleWeekDays(){
+   if(user?.role!=="admin"||!adminWeekTeacher)return weekDays;
+   return weekDays.map(day=>({
+     ...day,
+     lessons:(day.lessons||[]).filter(lesson=>lesson.teacher_id===adminWeekTeacher)
+   }));
+ }
  async function restore(){try{const r=await fetch('/api/me',{cache:'no-store'});if(!r.ok)return;const j=await r.json();setUser(j.user);const t=await loadToday();if(t?.date)setWeekBase(t.date);if(j.user.role==='admin')loadMeta()}finally{setLoading(false)}}
  async function login(e:FormEvent){e.preventDefault();setError("");if(!/^\d{4}$/.test(pin)){setError('4자리 로그인번호를 입력해주세요.');return}setLoginLoading(true);try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});const j=await r.json();if(!r.ok){setError(j.message||'로그인 실패');return}setUser(j.user);setPin('');const t=await loadToday();if(t?.date)setWeekBase(t.date);if(j.user.role==='admin')loadMeta()}finally{setLoginLoading(false)}}
- async function loadMeta(){const r=await fetch('/api/admin/meta',{cache:'no-store'});if(r.ok){const j=await r.json();setMeta(j);setAdminWeekTeacher((current)=>current||j.teachers?.[0]?.id||'')}}
+ async function loadMeta(){try{const r=await fetch('/api/admin/meta',{cache:'no-store'});if(!r.ok)return;const j=await r.json();const teachers=Array.isArray(j.teachers)?j.teachers:[];setMeta({teachers,schedules:Array.isArray(j.schedules)?j.schedules:[]});setAdminWeekTeacher(current=>current||teachers[0]?.id||'')}catch(e){console.error('loadMeta client:',e)}}
  async function loadToday(){setBusy(true);try{const r=await fetch('/api/today',{cache:'no-store'});const j=await r.json();if(!r.ok)return null;setDate(j.date);setLessons(j.lessons||[]);setEvents(j.events||[]);return j}finally{setBusy(false)}}
- async function loadWeek(base?:string){setBusy(true);try{const target=base||weekBase||date;const r=await fetch(`/api/week?date=${target}`,{cache:'no-store'});const j=await r.json();if(!r.ok){setToast(j.message);return}setWeekBase(target);setWeekStart(j.weekStart);setWeekEnd(j.weekEnd);setWeekDays(j.days||[])}finally{setBusy(false)}}
- async function switchView(v:"daily"|"weekly"){setView(v);v==='daily'?await loadToday():await loadWeek(weekBase||date)}
+ async function loadWeek(base?:string){setBusy(true);try{const target=base||weekBase||date;if(!target){setToast('기준 날짜를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');return}const r=await fetch(`/api/week?date=${encodeURIComponent(target)}`,{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok){setToast(j.message||'주간 시간표를 불러오지 못했습니다.');return}setWeekBase(target);setWeekStart(j.weekStart||'');setWeekEnd(j.weekEnd||'');setWeekDays(Array.isArray(j.days)?j.days:[])}catch(e){console.error('loadWeek client:',e);setToast('주간 화면 표시 중 오류가 발생했습니다.')}finally{setBusy(false)}}
+ async function switchView(v:"daily"|"weekly"){setView(v);if(v==='daily'){await loadToday();return}await loadWeek(weekBase||date)}
  async function logout(){await fetch('/api/logout',{method:'POST'});setUser(null);setLessons([]);setWeekDays([]);setSelected(null)}
  async function openLesson(l:Lesson){if(l.isCustomMakeup){setToast(`${l.classes?.class_name||'보강'} · ${l.start_time?.slice(0,5)} 보강 수업`);return}if(l.operationStatus==='학원방학'||l.operationStatus==='휴강'){if(user?.role==='admin')openChange(l);else setToast(l.operationStatus==='휴강'?'휴강된 수업입니다.':'학원방학입니다.');return}setSelected(l);setDetail(null);setDetailBusy(true);try{const r=await fetch(`/api/lesson/${encodeURIComponent(l.schedule_code)}?date=${l.lessonDate}`,{cache:'no-store'});const j=await r.json();if(!r.ok){setToast(j.message);setSelected(null);return}setDetail(j)}finally{setDetailBusy(false)}}
  function updateRecord(k:string,v:string){setDetail((d:any)=>d?({...d,record:{...d.record,[k]:v}}):d)} function updateStudent(i:number,p:any){setDetail((d:any)=>{if(!d)return d;const s=[...d.students];s[i]={...s[i],...p};return{...d,students:s}})} function allPresent(){setDetail((d:any)=>d?({...d,students:d.students.map((s:any)=>({...s,attendance_status:'출석'}))}):d)}
@@ -95,8 +95,10 @@ export default function Home(){
      </button>)}
    </div>}
 
-   <div className={user.role==='admin'&&adminWeekTeacher?'week-board compact-admin-week':'week-board'}>
-     {(user.role==='admin'?adminFilteredWeekDays:weekDays).map(d=><section className="week-day-column" key={d.date}>
+   {busy&&<div className="weekly-state-box">주간 시간표를 불러오는 중입니다.</div>}
+   {!busy&&weekDays.length===0&&<div className="weekly-state-box">표시할 주간 데이터가 없습니다.</div>}
+   {!busy&&weekDays.length>0&&<div className={user.role==='admin'&&adminWeekTeacher?'week-board compact-admin-week':'week-board'}>
+     {(user.role==='admin'?visibleWeekDays():weekDays).map(d=><section className="week-day-column" key={d.date}>
        <div className="week-day-head">
          <strong>{DAYS[d.dayOfWeek]}</strong>
          <span>{short(d.date)}</span>
@@ -125,7 +127,7 @@ export default function Home(){
          </button>):<div className="week-empty">수업 없음</div>}
        </div>
      </section>)}
-   </div>
+   </div>}
   </section>}
  </div></main>
  {selected&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}><section className="lesson-modal"><header className="modal-head"><div><div className="modal-kicker">LESSON MANAGEMENT</div><h2>{selected.classes?.class_name}</h2><div className="modal-sub">{fmt(selected.lessonDate)} · {selected.start_time?.slice(0,5)} ~ {selected.end_time?.slice(0,5)} · {selected.subject} · {room(selected.room)}</div></div><button className="modal-close" onClick={()=>setSelected(null)}>×</button></header>{detailBusy||!detail?<div className="modal-loading">불러오는 중...</div>:<div className="modal-body"><section className="record-grid"><label className="record-field"><span>수업 진도</span><textarea value={detail.record.progress} onChange={e=>updateRecord('progress',e.target.value)}/></label><label className="record-field"><span>숙제</span><textarea value={detail.record.homework} onChange={e=>updateRecord('homework',e.target.value)}/></label></section><label className="record-field memo-field"><span>특이사항</span><textarea value={detail.record.lesson_memo} onChange={e=>updateRecord('lesson_memo',e.target.value)}/></label><section className="attendance-section"><div className="attendance-head"><h3>학생 출결 <small>{detail.students.length}명</small></h3><button className="all-present-button" onClick={allPresent}>전체 출석</button></div><div className="student-list">{detail.students.map((s,i)=><article className="student-row" key={s.id}><div className="student-info"><strong>{s.student_name}</strong><span>{[s.school,s.registered_grade].filter(Boolean).join(' · ')}</span></div><div className="attendance-buttons">{STATUSES.map(st=><button key={st} className={`attendance-button ${s.attendance_status===st?`active ${st}`:''}`} onClick={()=>updateStudent(i,{attendance_status:st})}>{st}</button>)}</div><input className="attendance-memo" value={s.attendance_memo} onChange={e=>updateStudent(i,{attendance_memo:e.target.value})} placeholder="출결 메모"/></article>)}</div></section><div className="modal-actions"><button className="cancel-button" onClick={()=>setSelected(null)}>닫기</button><button className="save-button" disabled={saving} onClick={saveLesson}>{saving?'저장 중...':'저장'}</button></div></div>}</section></div>}
