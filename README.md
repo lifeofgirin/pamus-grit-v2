@@ -1,20 +1,23 @@
-# Pamus Grit v2 - v10.3
+# Pamus Grit v2 - v11
 
-학생관리 실제 DB 스키마 기준 재작성.
+## 반관리
 
-실제 사용 컬럼:
-- id
-- student_name
-- school
-- registered_grade
-- registered_school_year
-- birth_date
-- class_id
+관리자 1004 전용 `반관리` 탭:
+- 반 검색
+- 반 추가
+- 반명 수정
+- 반 코드 확인
+- 주담당 선생님 지정
+- 반별 학생 수 표시
+- 현재 반 학생 목록
+- 학생 추가 / 제외
+- 학생 검색
+- 연결된 학생 또는 시간표가 있으면 반 삭제 차단
 
-제거:
-- student_code
-- status
+중요:
+- 기존 실제 수업 담당 선생님(schedules.teacher_id)은 변경하지 않음
+- classes.primary_teacher_id를 별도 사용
+- 반명 수정은 class_id 관계를 유지하므로 시간표/반별 화면에도 자동 반영
 
-학생 목록 / 검색 / 추가 / 수정 / 반 변경 / 생년월일 / 등록연도 지원.
-
-SQL 추가 없음.
+DB SQL 1회 필요:
+PamusGrit_v2_11차_반관리_DB추가.sql

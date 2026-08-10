@@ -2678,3 +2678,260 @@ input {
     flex: 1;
   }
 }
+
+
+/* =========================================
+   v11 반관리
+========================================= */
+
+.class-management-panel {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.class-management-head {
+  margin-bottom: 13px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.class-management-head h2 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.class-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 9px;
+}
+
+.class-admin-card {
+  min-height: 112px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #e0e5ed;
+  border-radius: 13px;
+  background: #fff;
+  color: #354258;
+  text-align: left;
+}
+
+.class-admin-card:hover {
+  border-color: #aebbed;
+  background: #fafbff;
+  box-shadow: 0 8px 20px rgba(40,58,110,.07);
+}
+
+.class-admin-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.class-admin-card-top strong {
+  overflow: hidden;
+  color: #25324a;
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.class-admin-card-top span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #eef2fb;
+  color: #5d6fa8;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.class-admin-code {
+  color: #a0a8b6;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.class-admin-teacher {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.class-admin-teacher span {
+  color: #8f99aa;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.class-admin-teacher strong {
+  color: #5c687c;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.class-edit-modal {
+  max-width: 850px;
+}
+
+.class-primary-teacher-field {
+  grid-column: 1 / -1;
+}
+
+.class-student-management {
+  margin-top: 17px;
+  padding-top: 16px;
+  border-top: 1px solid #e7eaf0;
+}
+
+.class-student-head h3 {
+  margin: 0;
+  color: #2c384d;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.class-student-head h3 small {
+  color: #7d8aa0;
+  font-size: 8px;
+}
+
+.class-student-head p {
+  margin: 3px 0 0;
+  color: #929cab;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.class-student-search {
+  width: 100%;
+  height: 37px;
+  margin: 10px 0 8px;
+  padding: 0 11px;
+  border: 1px solid #dfe4ec;
+  border-radius: 9px;
+  outline: none;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.class-student-columns {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+}
+
+.class-student-column {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e3e7ee;
+  border-radius: 11px;
+  background: #fbfcfe;
+}
+
+.class-student-column-title {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e3e7ee;
+  background: #f4f6f9;
+  color: #68758a;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.class-student-list {
+  max-height: 270px;
+  overflow-y: auto;
+}
+
+.class-student-item {
+  min-height: 47px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.class-student-item:last-child {
+  border-bottom: 0;
+}
+
+.class-student-item > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.class-student-item strong {
+  overflow: hidden;
+  color: #344158;
+  font-size: 9px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.class-student-item span {
+  overflow: hidden;
+  color: #8994a5;
+  font-size: 7px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.class-student-item button {
+  flex: 0 0 auto;
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid #d8dfeb;
+  border-radius: 7px;
+  background: #fff;
+  color: #5e6f90;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.class-student-empty {
+  padding: 28px 10px;
+  color: #9ba5b3;
+  font-size: 7.5px;
+  font-weight: 800;
+  text-align: center;
+}
+
+@media(max-width:850px) {
+  .class-admin-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:650px) {
+  .class-management-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .class-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .class-student-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .class-primary-teacher-field {
+    grid-column: auto;
+  }
+}
