@@ -179,31 +179,15 @@ export async function GET(request: Request) {
         .gte("change_date", weekStart)
         .lte("change_date", weekEnd),
 
-      supabase
-        .from("lesson_records")
-        .select(`
-          schedule_id,
-          class_id,
-          lesson_date,
-          teacher_id,
-          progress,
-          homework,
-          lesson_memo,
-          teachers (
-            teacher_code,
-            teacher_name
-          )
-        `)
-        .eq("class_id", classId)
-        .gte("lesson_date", weekStart)
-        .lte("lesson_date", weekEnd)
-        .order("lesson_date", { ascending: true }),
+      Promise.resolve({
+        data: [],
+        error: null,
+      }),
     ]);
 
     if (classResult.error) throw classResult.error;
     if (schedulesResult.error) throw schedulesResult.error;
     if (changesResult.error) throw changesResult.error;
-    if (recordsResult.error) throw recordsResult.error;
 
     if (!classResult.data) {
       return NextResponse.json(
@@ -214,7 +198,50 @@ export async function GET(request: Request) {
 
     const schedules = schedulesResult.data || [];
     const changes = changesResult.data || [];
-    const records = recordsResult.data || [];
+
+    /*
+     * v7.1:
+     * 반별 요약은 lesson_records.class_id를 믿지 않는다.
+     * 기존 저장 기록 중 class_id가 비어 있어도 잡히도록
+     * 이 반의 schedule_id 목록으로 기록을 조회한다.
+     */
+    const scheduleIds = schedules.map(
+      (schedule: any) => schedule.id
+    );
+
+    let records: any[] = [];
+
+    if (scheduleIds.length) {
+      const recordsByScheduleResult =
+        await supabase
+          .from("lesson_records")
+          .select(`
+            schedule_id,
+            class_id,
+            lesson_date,
+            teacher_id,
+            progress,
+            homework,
+            lesson_memo,
+            teachers (
+              teacher_code,
+              teacher_name
+            )
+          `)
+          .in("schedule_id", scheduleIds)
+          .gte("lesson_date", weekStart)
+          .lte("lesson_date", weekEnd)
+          .order("lesson_date", {
+            ascending: true,
+          });
+
+      if (recordsByScheduleResult.error) {
+        throw recordsByScheduleResult.error;
+      }
+
+      records =
+        recordsByScheduleResult.data || [];
+    }
 
     const changeMap = new Map<string, any>();
 
