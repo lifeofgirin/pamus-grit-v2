@@ -997,20 +997,38 @@ export default function Home(){
   const title=
     `${className}${bracket}숙제`;
 
-  const contentLines=
+  const progressLines=
+    dateRecords
+      .filter((r:any)=>String(r.progress||'').trim())
+      .map((r:any)=>{
+        const teacher=bandTeacherName(r.teacher_name);
+        const progress=String(r.progress||'').trim();
+
+        return `${teacher} 진도: ${progress}`;
+      });
+
+  const homeworkLines=
     homeworkRecords.map((r:any)=>{
       const teacher=bandTeacherName(r.teacher_name);
       const homework=String(r.homework||'').trim();
 
-      return teacherNames.length>1
-        ?`${teacher} - ${homework}`
-        :homework;
+      return `${teacher} 숙제: ${homework}`;
     });
+
+  const contentParts:string[]=[];
+
+  if(progressLines.length){
+    contentParts.push(progressLines.join('\n'));
+  }
+
+  if(homeworkLines.length){
+    contentParts.push(homeworkLines.join('\n'));
+  }
 
   return {
     date:lessonDate,
     title,
-    content:contentLines.join('\n')
+    content:contentParts.join('\n\n')
   };
  }
 
@@ -1088,36 +1106,21 @@ export default function Home(){
 
   try{
     await navigator.clipboard.writeText(text);
-    setToast('BAND 일정 제목/숙제 복사 완료');
+    setToast('BAND 일정 제목/진도/숙제 복사 완료');
   }catch{
     setToast('클립보드 복사에 실패했습니다.');
   }
  }
 
  function openBandApp(){
-  const isMobile=
-    /Android|iPhone|iPad|iPod/i.test(
-      navigator.userAgent
-    );
+  const motherBandEventUrl=
+    'https://www.band.us/band/81127359/event';
 
-  if(!isMobile){
-    window.open(
-      'https://band.us',
-      '_blank',
-      'noopener,noreferrer'
-    );
-    return;
-  }
-
-  // BAND 공식 Share 문서에서 사용하는 bandapp:// scheme.
-  // 일정 작성 화면을 직접 여는 공개 scheme은 없어 앱 홈만 연다.
-  window.location.href='bandapp://';
-
-  window.setTimeout(()=>{
-    if(document.visibilityState==='visible'){
-      window.location.href='https://band.us';
-    }
-  },900);
+  window.open(
+    motherBandEventUrl,
+    '_blank',
+    'noopener,noreferrer'
+  );
  }
 
  function summaryText(mode:"progress"|"homework"|"all"){
@@ -2041,7 +2044,7 @@ export default function Home(){
      <div>
        <div className="modal-kicker">BAND HOMEWORK</div>
        <h2>BAND 일정 등록 도우미</h2>
-       <div className="modal-sub">숙제를 복사한 뒤 모밴드 일정에 붙여넣으면 됩니다.</div>
+       <div className="modal-sub">진도와 숙제를 복사한 뒤 모밴드 일정에 붙여넣으면 됩니다.</div>
      </div>
      <button className="modal-close" onClick={()=>setBandModal(false)}>×</button>
    </header>
@@ -2070,11 +2073,11 @@ export default function Home(){
        </label>
 
        <label className="admin-field band-content-field">
-         <span>숙제 내용</span>
+         <span>진도 · 숙제 내용</span>
          <textarea
            value={bandForm.content}
            onChange={e=>setBandForm(f=>({...f,content:e.target.value}))}
-           placeholder="그날 작성된 숙제가 자동으로 들어옵니다."
+           placeholder="그날 작성된 진도와 숙제가 자동으로 들어옵니다."
          />
        </label>
      </div>
@@ -2082,19 +2085,19 @@ export default function Home(){
      <div className="band-preview">
        <span>미리보기</span>
        <strong>{bandForm.title||'일정 제목'}</strong>
-       <p>{bandForm.content||'이 날짜에 작성된 숙제가 없습니다. 직접 입력할 수 있습니다.'}</p>
+       <p>{bandForm.content||'이 날짜에 작성된 진도/숙제가 없습니다. 직접 입력할 수 있습니다.'}</p>
      </div>
 
      <div className="band-helper-note">
        BAND 공개 기능상 외부 앱에서 ‘일정’을 바로 생성할 수는 없어서,
-       여기서 복사한 뒤 BAND 앱의 모밴드 → 일정 추가에 붙여넣는 방식입니다.
+       여기서 복사한 뒤 모밴드 일정 페이지에서 일정 추가 후 붙여넣는 방식입니다.
      </div>
 
      <div className="modal-actions band-helper-actions">
        <button className="cancel-button" onClick={()=>setBandModal(false)}>닫기</button>
 
        <div className="band-helper-right">
-         <button className="copy-band-button" onClick={copyBandSchedule}>제목 + 숙제 복사</button>
+         <button className="copy-band-button" onClick={copyBandSchedule}>제목 + 진도/숙제 복사</button>
          <button className="open-band-button" onClick={openBandApp}>BAND 열기</button>
        </div>
      </div>
