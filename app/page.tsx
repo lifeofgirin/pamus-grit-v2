@@ -236,12 +236,12 @@ export default function Home(){
   setStudentForm({
     id:student.id,
     studentName:student.student_name||'',
-    studentCode:student.student_code||'',
+    studentCode:''||'',
     school:student.school||'',
     registeredGrade:student.registered_grade||'',
     birthDate:student.birth_date||'',
     classId:student.class_id||'',
-    status:student.status||'재원'
+    status:''||'재원'
   });
   setStudentModal(true);
  }
