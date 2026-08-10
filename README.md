@@ -1,14 +1,21 @@
-# Pamus Grit v2 - v10.1
+# Pamus Grit v2 - v10.2
 
-## 학생관리 TypeScript 빌드 오류 수정
+## 학생관리 실제 DB 스키마 연결 수정
 
-원인:
-- 첫 students 조회는 birth_date 포함
-- fallback 조회는 birth_date 미포함
-- TypeScript가 첫 조회 결과 타입으로 result를 고정해
-  fallback 결과를 재할당할 수 없다고 판단
+실제 students 컬럼에 맞춤:
+- id
+- student_name
+- school
+- registered_grade
+- registered_school_year
+- birth_date
+- class_id
 
 수정:
-- fallback을 허용하도록 result 응답 타입을 유연하게 처리
-- 학생관리 기능/DB 로직 변경 없음
-- SQL 추가 없음
+- 존재하지 않는 student_code 조회/저장 제거
+- 상태(status) 기능은 실제 컬럼 확인 전 제거
+- 등록연도 표시/수정 추가
+- 학생목록 조회 정상화
+- 학생 추가/수정/반 변경 유지
+
+추가 SQL 없음.

@@ -10,13 +10,12 @@ type Detail={date:string;schedule:Lesson;record:{progress:string;homework:string
 type Teacher={id:string;teacher_code:string;teacher_name:string};
 type AdminStudent={
   id:string;
-  student_code?:string|null;
   student_name:string;
   school:string|null;
   registered_grade:string|null;
+  registered_school_year:number|null;
   birth_date?:string|null;
   class_id:string|null;
-  status:string|null;
   classes?:{class_name:string}|null;
 };
 type Meta={teachers:Teacher[];classes:{id:string;class_code:string;class_name:string}[];schedules:any[]};
@@ -180,7 +179,7 @@ export default function Home(){
        student.school,
        student.registered_grade,
        student.classes?.class_name,
-       student.student_code
+       student.registered_school_year
      ]
        .filter(Boolean)
        .some(value=>String(value).toLowerCase().includes(q))
@@ -1096,7 +1095,7 @@ export default function Home(){
        <span>학교</span>
        <span>학년</span>
        <span>소속반</span>
-       <span>상태</span>
+       <span>등록연도</span>
      </div>
 
      {filteredAdminStudents.length===0
@@ -1111,7 +1110,7 @@ export default function Home(){
           <span>{student.school||'-'}</span>
           <span>{student.registered_grade||'-'}</span>
           <span className="student-class-chip">{student.classes?.class_name||'미배정'}</span>
-          <span className={`student-status status-${student.status||'재원'}`}>{student.status||'재원'}</span>
+          <span>{student.registered_school_year||'-'}</span>
         </button>)}
    </div>}
   </section>:<section className="schedule-panel class-week-panel printable-schedule">
@@ -1292,12 +1291,12 @@ export default function Home(){
        </label>
 
        <label className="admin-field">
-         <span>상태</span>
-         <select value={studentForm.status||'재원'} onChange={e=>setStudentForm((f:any)=>({...f,status:e.target.value}))}>
-           <option value="재원">재원</option>
-           <option value="휴원">휴원</option>
-           <option value="퇴원">퇴원</option>
-         </select>
+         <span>등록연도</span>
+         <input
+           type="number"
+           value={studentForm.registeredSchoolYear||new Date().getFullYear()}
+           onChange={e=>setStudentForm((f:any)=>({...f,registeredSchoolYear:e.target.value}))}
+         />
        </label>
      </div>
 

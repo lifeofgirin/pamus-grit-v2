@@ -21,9 +21,6 @@ function nullable(v:any){
   return value||null;
 }
 
-function makeStudentCode(){
-  return `S${Date.now().toString().slice(-9)}`;
-}
 
 export async function GET(){
   const session=await requireAdmin();
@@ -37,48 +34,24 @@ export async function GET(){
 
   const db=getSupabaseAdmin();
 
-  // 이관 시 birth_date 컬럼이 없는 DB도 화면 자체는 열리도록 fallback.
-  let hasBirthDate=true;
-
-  let result:any=await db
+  const {data,error}=await db
     .from("students")
     .select(`
       id,
-      student_code,
       student_name,
       school,
       registered_grade,
+      registered_school_year,
       birth_date,
       class_id,
-      status,
       classes (
         class_name
       )
     `)
     .order("student_name",{ascending:true});
 
-  if(result.error){
-    hasBirthDate=false;
-
-    result=await db
-      .from("students")
-      .select(`
-        id,
-        student_code,
-        student_name,
-        school,
-        registered_grade,
-        class_id,
-        status,
-        classes (
-          class_name
-        )
-      `)
-      .order("student_name",{ascending:true});
-  }
-
-  if(result.error){
-    console.error("admin students:",result.error);
+  if(error){
+    console.error("admin students:",error);
 
     return NextResponse.json(
       {ok:false,message:"학생 목록을 불러오지 못했습니다."},
@@ -88,8 +61,8 @@ export async function GET(){
 
   return NextResponse.json({
     ok:true,
-    hasBirthDate,
-    students:(result.data||[]).map((student:any)=>({
+    hasBirthDate:true,
+    students:(data||[]).map((student:any)=>({
       ...student,
       birth_date:student.birth_date||""
     }))
@@ -118,34 +91,18 @@ export async function POST(req:Request){
 
   const db=getSupabaseAdmin();
 
-  const baseRow={
+  const row={
     student_name:studentName,
     school:nullable(body.school),
     registered_grade:nullable(body.registeredGrade),
-    class_id:nullable(body.classId),
-    status:text(body.status)||"재원"
+    registered_school_year:Number(body.registeredSchoolYear)||new Date().getFullYear(),
+    birth_date:nullable(body.birthDate),
+    class_id:nullable(body.classId)
   };
 
-  const fullRow={
-    ...baseRow,
-    student_code:text(body.studentCode)||makeStudentCode(),
-    birth_date:nullable(body.birthDate)
-  };
-
-  let {error}=await db
+  const {error}=await db
     .from("students")
-    .insert(fullRow);
-
-  if(error){
-    // 선택 컬럼이 없는 구조라면 최소 필드로 한 번 더 시도.
-    console.warn("student insert full row failed:",error.message);
-
-    const retry=await db
-      .from("students")
-      .insert(baseRow);
-
-    error=retry.error;
-  }
+    .insert(row);
 
   if(error){
     console.error("student insert:",error);
@@ -182,34 +139,19 @@ export async function PUT(req:Request){
 
   const db=getSupabaseAdmin();
 
-  const baseRow={
+  const row={
     student_name:studentName,
     school:nullable(body.school),
     registered_grade:nullable(body.registeredGrade),
-    class_id:nullable(body.classId),
-    status:text(body.status)||"재원"
+    registered_school_year:Number(body.registeredSchoolYear)||new Date().getFullYear(),
+    birth_date:nullable(body.birthDate),
+    class_id:nullable(body.classId)
   };
 
-  const fullRow={
-    ...baseRow,
-    birth_date:nullable(body.birthDate)
-  };
-
-  let {error}=await db
+  const {error}=await db
     .from("students")
-    .update(fullRow)
+    .update(row)
     .eq("id",id);
-
-  if(error){
-    console.warn("student update full row failed:",error.message);
-
-    const retry=await db
-      .from("students")
-      .update(baseRow)
-      .eq("id",id);
-
-    error=retry.error;
-  }
 
   if(error){
     console.error("student update:",error);
