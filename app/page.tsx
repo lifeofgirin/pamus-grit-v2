@@ -32,6 +32,67 @@ const toMinutes=(v:string)=>{
 const ttTop=(v:string)=>Math.max(0,(toMinutes(v)-TT_START)*TT_PX_PER_MIN);
 const ttHeight=(start:string,end:string)=>Math.max(38,(toMinutes(end)-toMinutes(start))*TT_PX_PER_MIN);
 const TT_HOURS=Array.from({length:11},(_,i)=>10+i);
+const layoutOverlaps=(lessons:Lesson[])=>{
+  const sorted=[...lessons].sort((a,b)=>
+    toMinutes(a.start_time)-toMinutes(b.start_time) ||
+    toMinutes(a.end_time)-toMinutes(b.end_time)
+  );
+
+  const groups:Lesson[][]=[];
+  let current:Lesson[]=[];
+  let currentEnd=-1;
+
+  sorted.forEach(lesson=>{
+    const start=toMinutes(lesson.start_time);
+    const end=toMinutes(lesson.end_time);
+
+    if(!current.length || start<currentEnd){
+      current.push(lesson);
+      currentEnd=Math.max(currentEnd,end);
+    }else{
+      groups.push(current);
+      current=[lesson];
+      currentEnd=end;
+    }
+  });
+
+  if(current.length)groups.push(current);
+
+  const result=new Map<string,{column:number;columns:number}>();
+
+  groups.forEach(group=>{
+    const columnEnds:number[]=[];
+    const assignments=new Map<string,number>();
+
+    group.forEach(lesson=>{
+      const start=toMinutes(lesson.start_time);
+      let column=columnEnds.findIndex(end=>end<=start);
+
+      if(column===-1){
+        column=columnEnds.length;
+        columnEnds.push(toMinutes(lesson.end_time));
+      }else{
+        columnEnds[column]=toMinutes(lesson.end_time);
+      }
+
+      assignments.set(lesson.schedule_code,column);
+    });
+
+    const columns=Math.max(columnEnds.length,1);
+
+    group.forEach(lesson=>{
+      result.set(
+        lesson.schedule_code,
+        {
+          column:assignments.get(lesson.schedule_code)??0,
+          columns
+        }
+      );
+    });
+  });
+
+  return result;
+};
 
 export default function Home(){
  const[loading,setLoading]=useState(true),[loginLoading,setLoginLoading]=useState(false),[pin,setPin]=useState(""),[error,setError]=useState("");
@@ -584,22 +645,36 @@ export default function Home(){
                  style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
                />)}
 
-               {d.lessons.map(l=><button
-                 type="button"
-                 key={`${d.date}_${l.schedule_code}`}
-                 className={`tt-lesson ${statusClass(l)}`}
-                 style={{
-                   top:ttTop(l.start_time),
-                   height:ttHeight(l.start_time,l.end_time)
-                 }}
-                 onClick={()=>openLesson(l)}
-               >
-                 <div className="tt-lesson-simple">
-                   <strong>{l.classes?.class_name}</strong>
-                   <span>{l.start_time?.slice(0,5)}-{l.end_time?.slice(0,5)}</span>
-                 </div>
-                 {l.operationStatus!=='정상'&&<em>{l.operationStatus}</em>}
-               </button>)}
+               {(()=>{
+                 const overlapLayout=layoutOverlaps(d.lessons);
+
+                 return d.lessons.map(l=>{
+                   const layout=overlapLayout.get(l.schedule_code)??{column:0,columns:1};
+                   const gap=4;
+                   const width=`calc(${100/layout.columns}% - ${gap}px)`;
+                   const left=`calc(${(100/layout.columns)*layout.column}% + ${layout.column?gap/2:gap}px)`;
+
+                   return <button
+                     type="button"
+                     key={`${d.date}_${l.schedule_code}`}
+                     className={`tt-lesson ${statusClass(l)} ${layout.columns>1?'tt-overlap':''}`}
+                     style={{
+                       top:ttTop(l.start_time),
+                       height:ttHeight(l.start_time,l.end_time),
+                       left,
+                       width,
+                       right:'auto'
+                     }}
+                     onClick={()=>openLesson(l)}
+                   >
+                     <div className="tt-lesson-simple">
+                       <strong>{l.classes?.class_name}</strong>
+                       <span>{l.start_time?.slice(0,5)}-{l.end_time?.slice(0,5)}</span>
+                     </div>
+                     {l.operationStatus!=='정상'&&<em>{l.operationStatus}</em>}
+                   </button>;
+                 });
+               })()}
              </div>)}
            </div>
          </div>
