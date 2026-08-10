@@ -40,7 +40,7 @@ export async function GET(){
   // 이관 시 birth_date 컬럼이 없는 DB도 화면 자체는 열리도록 fallback.
   let hasBirthDate=true;
 
-  let result=await db
+  let result:any=await db
     .from("students")
     .select(`
       id,
