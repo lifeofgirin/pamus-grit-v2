@@ -3442,3 +3442,33 @@ input {
     grid-column: auto;
   }
 }
+
+
+/* =========================================
+   v14 PWA / 모바일 홈화면 설치
+========================================= */
+
+html {
+  background: #f5f7fb;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+  }
+}

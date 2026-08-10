@@ -1,0 +1,20 @@
+{
+  "name": "Pamus Grit English",
+  "short_name": "Pamus Grit",
+  "description": "파머스그릿어학원 운영 관리",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#1f2b46",
+  "orientation": "any",
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "/pamus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
