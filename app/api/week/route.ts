@@ -178,6 +178,8 @@ export async function GET(
             room,
             teacher_id,
             is_active,
+            valid_from,
+            valid_to,
             classes (
               class_code,
               class_name
@@ -191,6 +193,8 @@ export async function GET(
             "is_active",
             true
           )
+          .lte("valid_from",weekEnd)
+          .or(`valid_to.is.null,valid_to.gte.${weekStart}`)
           .in(
             "day_of_week",
             [1, 2, 3, 4, 5]
@@ -386,11 +390,21 @@ export async function GET(
                     `${schedule.id}__${day.date}`
                   );
 
+                const inPeriod=
+                  schedule.valid_from<=day.date &&
+                  (
+                    !schedule.valid_to ||
+                    schedule.valid_to>=day.date
+                  );
+
                 return (
-                  schedule.day_of_week ===
-                    day.dayOfWeek ||
-                  change?.status ===
-                    "보강"
+                  inPeriod &&
+                  (
+                    schedule.day_of_week ===
+                      day.dayOfWeek ||
+                    change?.status ===
+                      "보강"
+                  )
                 );
               }
             )

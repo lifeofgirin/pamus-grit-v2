@@ -202,6 +202,8 @@ export async function GET(request: Request) {
           subject,
           room,
           teacher_id,
+          valid_from,
+          valid_to,
           teachers (
             teacher_code,
             teacher_name
@@ -209,6 +211,8 @@ export async function GET(request: Request) {
         `)
         .eq("class_id", classId)
         .eq("is_active", true)
+        .lte("valid_from",weekEnd)
+        .or(`valid_to.is.null,valid_to.gte.${weekStart}`)
         .in("day_of_week", [1, 2, 3, 4, 5])
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true }),
@@ -318,7 +322,12 @@ export async function GET(request: Request) {
       const lessons = schedules
         .filter(
           (schedule: any) =>
-            schedule.day_of_week === day.dayOfWeek
+            schedule.day_of_week === day.dayOfWeek &&
+            schedule.valid_from<=day.date &&
+            (
+              !schedule.valid_to ||
+              schedule.valid_to>=day.date
+            )
         )
         .map((schedule: any) => {
           const change = changeMap.get(

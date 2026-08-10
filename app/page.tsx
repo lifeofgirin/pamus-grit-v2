@@ -206,6 +206,10 @@ export default function Home(){
  const[classModal,setClassModal]=useState(false);
  const[classForm,setClassForm]=useState<any>({});
  const[classStudentSearch,setClassStudentSearch]=useState("");
+ const[classScheduleDate,setClassScheduleDate]=useState(date);
+ const[classScheduleRows,setClassScheduleRows]=useState<any[]>([]);
+ const[classScheduleBusy,setClassScheduleBusy]=useState(false);
+ const[classScheduleSaving,setClassScheduleSaving]=useState(false);
  const[adminTeachers,setAdminTeachers]=useState<AdminTeacher[]>([]);
  const[teachersBusy,setTeachersBusy]=useState(false);
  const[teacherSearch,setTeacherSearch]=useState("");
@@ -467,6 +471,118 @@ export default function Home(){
   ]);
  }
 
+ async function loadClassBaseSchedule(classId:string,targetDate:string){
+  if(!classId)return;
+
+  setClassScheduleBusy(true);
+
+  try{
+    const r=await fetch(
+      `/api/admin/classes/schedule?classId=${encodeURIComponent(classId)}&date=${encodeURIComponent(targetDate)}`,
+      {cache:'no-store'}
+    );
+    const j=await r.json();
+
+    if(!r.ok||!j.ok){
+      setClassScheduleRows([]);
+      setToast(j.message||'기본 시간표를 불러오지 못했습니다.');
+      return;
+    }
+
+    setClassScheduleRows(
+      (j.rows||[]).map((row:any)=>({
+        day_of_week:Number(row.day_of_week),
+        start_time:String(row.start_time||'').slice(0,5),
+        end_time:String(row.end_time||'').slice(0,5),
+        subject:row.subject||'',
+        room:row.room||'',
+        teacher_id:row.teacher_id||''
+      }))
+    );
+  }catch(e){
+    console.error('loadClassBaseSchedule:',e);
+    setToast('기본 시간표 표시 중 오류가 발생했습니다.');
+  }finally{
+    setClassScheduleBusy(false);
+  }
+ }
+
+ function addClassScheduleRow(){
+  setClassScheduleRows(rows=>[
+    ...rows,
+    {
+      day_of_week:1,
+      start_time:'14:00',
+      end_time:'14:40',
+      subject:'',
+      room:'',
+      teacher_id:''
+    }
+  ]);
+ }
+
+ function updateClassScheduleRow(index:number,key:string,value:any){
+  setClassScheduleRows(rows=>
+    rows.map((row,i)=>
+      i===index
+        ?{...row,[key]:value}
+        :row
+    )
+  );
+ }
+
+ function removeClassScheduleRow(index:number){
+  setClassScheduleRows(rows=>rows.filter((_,i)=>i!==index));
+ }
+
+ async function saveClassBaseSchedule(){
+  if(!classForm.id)return;
+
+  if(!classScheduleDate){
+    setToast('적용 시작일을 선택해주세요.');
+    return;
+  }
+
+  if(!window.confirm(
+    `${classScheduleDate}부터 ${classForm.className} 반의 기본 시간표를 변경할까요?\n\n이 날짜 이전 시간표는 그대로 보존됩니다.`
+  ))return;
+
+  setClassScheduleSaving(true);
+
+  try{
+    const r=await fetch(
+      '/api/admin/classes/schedule',
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          classId:classForm.id,
+          effectiveFrom:classScheduleDate,
+          rows:classScheduleRows
+        })
+      }
+    );
+
+    const j=await r.json();
+
+    if(!r.ok||!j.ok){
+      setToast(j.message||'기본 시간표 저장에 실패했습니다.');
+      return;
+    }
+
+    setToast(`${classScheduleDate}부터 새 기본 시간표가 적용됩니다.`);
+
+    await Promise.all([
+      loadClassBaseSchedule(classForm.id,classScheduleDate),
+      loadMeta(),
+      loadWeek(weekBase),
+      loadClassWeek(weekBase)
+    ]);
+  }finally{
+    setClassScheduleSaving(false);
+  }
+ }
+
  async function loadClasses(){
   if(user?.role!=='admin')return;
 
@@ -510,7 +626,10 @@ export default function Home(){
     primaryTeacherId:item.primary_teacher_id||''
   });
   setClassStudentSearch('');
+  setClassScheduleDate(date);
+  setClassScheduleRows([]);
   setClassModal(true);
+  loadClassBaseSchedule(item.id,date);
  }
 
  async function saveClass(){
@@ -2223,6 +2342,122 @@ export default function Home(){
          </select>
        </label>
      </div>
+
+     {classForm.id&&<section className="class-base-schedule-management">
+       <div className="class-schedule-head">
+         <div>
+           <h3>기본 시간표 <small>기간별 적용</small></h3>
+           <p>개학처럼 시간표가 바뀔 때 적용 시작일을 정해서 새 시간표를 저장하세요. 이전 기간은 그대로 남습니다.</p>
+         </div>
+       </div>
+
+       <div className="class-schedule-date-row">
+         <label>
+           <span>적용 시작일</span>
+           <input
+             type="date"
+             min={date}
+             value={classScheduleDate}
+             onChange={e=>{
+               const next=e.target.value;
+               setClassScheduleDate(next);
+               loadClassBaseSchedule(classForm.id,next);
+             }}
+           />
+         </label>
+
+         <button type="button" onClick={addClassScheduleRow}>+ 수업 추가</button>
+       </div>
+
+       {classScheduleBusy
+         ?<div className="class-schedule-empty">시간표를 불러오는 중입니다.</div>
+         :<div className="class-schedule-list">
+           {classScheduleRows.length===0
+             ?<div className="class-schedule-empty">
+                이 날짜에 적용되는 기본 수업이 없습니다. 수업 추가를 눌러 새 시간표를 만들어주세요.
+              </div>
+             :classScheduleRows
+               .map((row:any,index:number)=>({row,index}))
+               .sort((a:any,b:any)=>
+                 a.row.day_of_week-b.row.day_of_week ||
+                 String(a.row.start_time).localeCompare(String(b.row.start_time))
+               )
+               .map(({row,index}:any)=><div className="class-schedule-row" key={`${index}_${row.day_of_week}_${row.start_time}`}>
+                 <select
+                   aria-label="요일"
+                   value={row.day_of_week}
+                   onChange={e=>updateClassScheduleRow(index,'day_of_week',Number(e.target.value))}
+                 >
+                   <option value={1}>월</option>
+                   <option value={2}>화</option>
+                   <option value={3}>수</option>
+                   <option value={4}>목</option>
+                   <option value={5}>금</option>
+                 </select>
+
+                 <input
+                   type="time"
+                   aria-label="시작 시간"
+                   value={row.start_time}
+                   onChange={e=>updateClassScheduleRow(index,'start_time',e.target.value)}
+                 />
+
+                 <span className="class-schedule-wave">~</span>
+
+                 <input
+                   type="time"
+                   aria-label="종료 시간"
+                   value={row.end_time}
+                   onChange={e=>updateClassScheduleRow(index,'end_time',e.target.value)}
+                 />
+
+                 <input
+                   className="class-schedule-subject"
+                   placeholder="과목"
+                   value={row.subject}
+                   onChange={e=>updateClassScheduleRow(index,'subject',e.target.value)}
+                 />
+
+                 <input
+                   className="class-schedule-room"
+                   placeholder="강의실"
+                   value={row.room}
+                   onChange={e=>updateClassScheduleRow(index,'room',e.target.value)}
+                 />
+
+                 <select
+                   className="class-schedule-teacher"
+                   value={row.teacher_id}
+                   onChange={e=>updateClassScheduleRow(index,'teacher_id',e.target.value)}
+                 >
+                   <option value="">선생님 미지정</option>
+                   {meta.teachers.map(t=><option key={t.id} value={t.id}>{t.teacher_name}</option>)}
+                 </select>
+
+                 <button
+                   type="button"
+                   className="class-schedule-remove"
+                   onClick={()=>removeClassScheduleRow(index)}
+                 >
+                   삭제
+                 </button>
+               </div>)}
+         </div>}
+
+       <div className="class-schedule-save-row">
+         <span>
+           저장하면 <strong>{classScheduleDate}</strong> 이전 시간표는 유지되고,
+           해당 날짜부터 새 시간표가 적용됩니다.
+         </span>
+         <button
+           type="button"
+           disabled={classScheduleSaving}
+           onClick={saveClassBaseSchedule}
+         >
+           {classScheduleSaving?'저장 중...':'이 날짜부터 시간표 적용'}
+         </button>
+       </div>
+     </section>}
 
      {classForm.id&&<section className="class-student-management">
        <div className="class-student-head">

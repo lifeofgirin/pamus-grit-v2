@@ -31,6 +31,8 @@ export async function getLessonsForDate(
         room,
         teacher_id,
         is_active,
+        valid_from,
+        valid_to,
         classes (
           class_code,
           class_name
@@ -40,7 +42,9 @@ export async function getLessonsForDate(
           teacher_name
         )
       `)
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .lte("valid_from", date)
+      .or(`valid_to.is.null,valid_to.gte.${date}`),
 
     supabase
       .from("daily_schedule_changes")

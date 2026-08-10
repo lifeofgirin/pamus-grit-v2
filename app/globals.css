@@ -4345,3 +4345,227 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* =========================================
+   v17 반관리 - 기간별 기본 시간표
+========================================= */
+
+.class-base-schedule-management {
+  margin-top: 17px;
+  padding-top: 16px;
+  border-top: 1px solid #e7eaf0;
+}
+
+.class-schedule-head h3 {
+  margin: 0;
+  color: #2c384d;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.class-schedule-head h3 small {
+  color: #6d7fae;
+  font-size: 8px;
+}
+
+.class-schedule-head p {
+  margin: 4px 0 0;
+  color: #8994a5;
+  font-size: 7px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.class-schedule-date-row {
+  margin-top: 11px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.class-schedule-date-row label {
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.class-schedule-date-row label span {
+  color: #68758a;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.class-schedule-date-row input {
+  min-height: 37px;
+  padding: 0 10px;
+  border: 1px solid #dfe4ec;
+  border-radius: 9px;
+  background: #fff;
+  color: #354258;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.class-schedule-date-row button,
+.class-schedule-save-row button {
+  min-height: 37px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: #586fcb;
+  color: #fff;
+  font-size: 7.5px;
+  font-weight: 950;
+}
+
+.class-schedule-list {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.class-schedule-row {
+  padding: 7px;
+  display: grid;
+  grid-template-columns: 62px 84px 14px 84px minmax(90px,1fr) 76px minmax(115px,1fr) 50px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #e1e6ee;
+  border-radius: 9px;
+  background: #fbfcfe;
+}
+
+.class-schedule-row input,
+.class-schedule-row select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 7px;
+  border: 1px solid #dfe4ec;
+  border-radius: 7px;
+  background: #fff;
+  color: #3e4c62;
+  font-size: 7.5px;
+  font-weight: 850;
+}
+
+.class-schedule-wave {
+  color: #9aa4b2;
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.class-schedule-remove {
+  min-height: 31px;
+  border: 1px solid #ead9dc;
+  border-radius: 7px;
+  background: #fff7f8;
+  color: #a45b65;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.class-schedule-empty {
+  margin-top: 9px;
+  padding: 24px 10px;
+  border: 1px dashed #dce2eb;
+  border-radius: 9px;
+  color: #98a2b1;
+  font-size: 7.5px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.class-schedule-save-row {
+  margin-top: 10px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  border-radius: 9px;
+  background: #f4f7ff;
+}
+
+.class-schedule-save-row span {
+  color: #70809b;
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.class-schedule-save-row strong {
+  color: #4e64ba;
+}
+
+.class-schedule-save-row button:disabled {
+  opacity: .6;
+}
+
+@media(max-width:760px) {
+  .class-edit-modal {
+    width: calc(100vw - 18px);
+    max-height: calc(100dvh - 28px);
+    overflow-y: auto;
+  }
+
+  .class-schedule-date-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .class-schedule-date-row label {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .class-schedule-date-row input,
+  .class-schedule-date-row button {
+    min-height: 44px;
+    font-size: 11px;
+  }
+
+  .class-schedule-row {
+    padding: 9px;
+    grid-template-columns: 64px 1fr 12px 1fr;
+    gap: 7px;
+  }
+
+  .class-schedule-row input,
+  .class-schedule-row select {
+    min-height: 40px;
+    font-size: 10px;
+  }
+
+  .class-schedule-subject,
+  .class-schedule-room,
+  .class-schedule-teacher {
+    grid-column: 1 / -1;
+  }
+
+  .class-schedule-remove {
+    grid-column: 1 / -1;
+    min-height: 38px;
+    font-size: 9px;
+  }
+
+  .class-schedule-save-row {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 11px;
+  }
+
+  .class-schedule-save-row span {
+    font-size: 9px;
+  }
+
+  .class-schedule-save-row button {
+    min-height: 44px;
+    font-size: 10px;
+  }
+}
