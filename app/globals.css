@@ -2447,3 +2447,234 @@ input {
     flex: 1;
   }
 }
+
+
+/* =========================================
+   v10 학생관리
+========================================= */
+
+.student-management-panel {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.student-management-head {
+  margin-bottom: 13px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-management-head h2 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.student-add-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #253451;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.student-search-row {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-search-row input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 13px;
+  border: 1px solid #dce3ed;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 750;
+  outline: none;
+}
+
+.student-search-row input:focus {
+  border-color: #8094e9;
+  box-shadow: 0 0 0 3px rgba(97,120,222,.09);
+}
+
+.student-search-row span {
+  flex: 0 0 auto;
+  min-width: 52px;
+  color: #7c889a;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.student-admin-table-wrap {
+  max-height: 66vh;
+  overflow: auto;
+  border: 1px solid #e0e5ed;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.student-admin-table-head,
+.student-admin-row {
+  display: grid;
+  grid-template-columns: 1.05fr 1.4fr .8fr 1.15fr .65fr;
+  align-items: center;
+  gap: 9px;
+}
+
+.student-admin-table-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 39px;
+  padding: 0 12px;
+  border-bottom: 1px solid #dfe4ec;
+  background: #f7f9fc;
+  color: #7c8798;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.student-admin-row {
+  width: 100%;
+  min-height: 47px;
+  padding: 7px 12px;
+  border: 0;
+  border-bottom: 1px solid #eef1f5;
+  background: #fff;
+  color: #435066;
+  text-align: left;
+}
+
+.student-admin-row:hover {
+  background: #f9faff;
+}
+
+.student-admin-row:last-child {
+  border-bottom: 0;
+}
+
+.student-admin-row strong {
+  overflow: hidden;
+  color: #25324a;
+  font-size: 10px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-admin-row > span {
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-class-chip {
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #eef1fb;
+  color: #596ba8;
+}
+
+.student-status {
+  width: fit-content;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #eaf7ef;
+  color: #38805a;
+  font-size: 7px !important;
+  font-weight: 950 !important;
+}
+
+.student-status.status-휴원 {
+  background: #fff4df;
+  color: #a16e24;
+}
+
+.student-status.status-퇴원 {
+  background: #f0f1f3;
+  color: #747c88;
+}
+
+.student-admin-empty {
+  padding: 50px 20px;
+  color: #98a2b1;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.student-edit-modal {
+  max-width: 620px;
+}
+
+.student-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 11px;
+}
+
+.student-edit-grid .admin-field {
+  margin: 0;
+}
+
+.student-edit-actions {
+  justify-content: space-between;
+}
+
+.student-edit-right {
+  display: flex;
+  gap: 7px;
+}
+
+@media(max-width:650px) {
+  .student-management-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-add-button {
+    width: 100%;
+  }
+
+  .student-admin-table-wrap {
+    overflow-x: auto;
+  }
+
+  .student-admin-table-head,
+  .student-admin-row {
+    min-width: 670px;
+  }
+
+  .student-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-edit-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .student-edit-right {
+    width: 100%;
+  }
+
+  .student-edit-right button {
+    flex: 1;
+  }
+}
