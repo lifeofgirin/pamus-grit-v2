@@ -1417,3 +1417,261 @@ input {
     flex: 1;
   }
 }
+
+
+/* =========================================
+   v7 오늘 업무 대시보드
+========================================= */
+
+.work-panel {
+  overflow: visible;
+}
+
+.work-summary-grid {
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.work-summary-card {
+  min-height: 74px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fbfcfe;
+}
+
+.work-summary-card span {
+  color: #7b8799;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.work-summary-card strong {
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.work-summary-card.success {
+  border-color: #b5e2c8;
+  background: #f1fbf5;
+}
+
+.work-summary-card.success strong {
+  color: #147447;
+}
+
+.work-summary-card.warning {
+  border-color: #f0d38e;
+  background: #fff9e9;
+}
+
+.work-summary-card.warning strong {
+  color: #a86d09;
+}
+
+.work-summary-card.mini strong {
+  font-size: 17px;
+}
+
+.work-lesson-list {
+  display: grid;
+  gap: 6px;
+}
+
+.work-lesson-card {
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns:
+    72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e1e6ee;
+  border-radius: 11px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+}
+
+.work-lesson-card:hover {
+  border-color: #aebcf0;
+  box-shadow:
+    0 6px 18px
+    rgba(49,87,213,.07);
+}
+
+.work-lesson-time {
+  color: #3d4a5f;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.work-lesson-time {
+  display: flex;
+  flex-direction: column;
+}
+
+.work-lesson-time span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.work-lesson-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.work-lesson-main strong {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-lesson-main span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-pending-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.work-pending-tags span {
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #fff0d7;
+  color: #a36608;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.work-all-complete {
+  padding: 38px 15px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #b9e3ca;
+  border-radius: 14px;
+  background: #f2fbf6;
+  text-align: center;
+}
+
+.work-all-complete strong {
+  color: #137245;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.work-all-complete span {
+  color: #6f8679;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.admin-work-groups {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-work-teacher {
+  padding: 12px;
+  border: 1px solid #eadfbf;
+  border-radius: 13px;
+  background: #fffaf0;
+}
+
+.admin-work-teacher.complete {
+  border-color: #c4e6d1;
+  background: #f4fbf7;
+}
+
+.admin-work-teacher-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-work-teacher-head > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.admin-work-teacher-head strong {
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-work-teacher-head span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.admin-work-numbers b {
+  color: #a46c0b;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.admin-work-numbers .all-done {
+  color: #137245;
+}
+
+.admin-work-tags {
+  margin: 7px 0 9px;
+  display: flex;
+  gap: 4px;
+}
+
+.admin-work-tags span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.8);
+  color: #738095;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+@media (max-width: 820px) {
+  .work-summary-grid {
+    grid-template-columns:
+      repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+  .work-summary-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .work-lesson-card {
+    grid-template-columns:
+      62px minmax(0,1fr);
+  }
+
+  .work-pending-tags {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

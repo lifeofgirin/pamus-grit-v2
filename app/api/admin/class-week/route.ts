@@ -40,10 +40,13 @@ export async function GET(request: Request) {
   try {
     const session = await getCurrentSession();
 
-    if (!session || session.role !== "admin") {
+    if (!session) {
       return NextResponse.json(
-        { ok: false, message: "관리자 전용입니다." },
-        { status: 403 }
+        {
+          ok: false,
+          message: "로그인이 필요합니다.",
+        },
+        { status: 401 }
       );
     }
 
@@ -63,6 +66,50 @@ export async function GET(request: Request) {
       );
     }
 
+    const supabase = getSupabaseAdmin();
+
+    if (session.role === "teacher") {
+      if (!session.teacherId) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "선생님 정보가 없습니다.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const {
+        data: accessSchedule,
+        error: accessError,
+      } = await supabase
+        .from("schedules")
+        .select("id")
+        .eq("class_id", classId)
+        .eq(
+          "teacher_id",
+          session.teacherId
+        )
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (accessError) {
+        throw accessError;
+      }
+
+      if (!accessSchedule) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "본인이 담당하는 반만 확인할 수 있습니다.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const monday = getMonday(baseDate);
 
     const days = Array.from(
@@ -75,8 +122,6 @@ export async function GET(request: Request) {
 
     const weekStart = days[0].date;
     const weekEnd = days[4].date;
-
-    const supabase = getSupabaseAdmin();
 
     const [
       classResult,
