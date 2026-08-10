@@ -8,6 +8,17 @@ type WeekDay={date:string;dayOfWeek:number;lessons:Lesson[];events:EventRow[];va
 type Student={id:string;student_name:string;school:string|null;registered_grade:string|null;attendance_status:string;attendance_memo:string;individual_memo:string};
 type Detail={date:string;schedule:Lesson;record:{progress:string;homework:string;lesson_memo:string};students:Student[]};
 type Teacher={id:string;teacher_code:string;teacher_name:string};
+
+type AdminTeacher={
+  id:string;
+  teacher_code:string;
+  teacher_name:string;
+  is_active:boolean;
+  schedule_count:number;
+  primary_class_count:number;
+  has_login:boolean;
+  login_active:boolean;
+};
 type AdminStudent={
   id:string;
   student_name:string;
@@ -159,7 +170,7 @@ const calendarCells=(month:string)=>{
 
 export default function Home(){
  const[loading,setLoading]=useState(true),[loginLoading,setLoginLoading]=useState(false),[pin,setPin]=useState(""),[error,setError]=useState("");
- const[user,setUser]=useState<User|null>(null),[view,setView]=useState<"daily"|"work"|"weekly"|"monthly"|"students"|"classes"|"classWeekly">("daily"),[date,setDate]=useState(""),[lessons,setLessons]=useState<Lesson[]>([]),[events,setEvents]=useState<EventRow[]>([]);
+ const[user,setUser]=useState<User|null>(null),[view,setView]=useState<"daily"|"work"|"weekly"|"monthly"|"students"|"classes"|"teachers"|"classWeekly">("daily"),[date,setDate]=useState(""),[lessons,setLessons]=useState<Lesson[]>([]),[events,setEvents]=useState<EventRow[]>([]);
  const[weekBase,setWeekBase]=useState(""),[weekStart,setWeekStart]=useState(""),[weekEnd,setWeekEnd]=useState(""),[weekDays,setWeekDays]=useState<WeekDay[]>([]),[busy,setBusy]=useState(false);
  const[selected,setSelected]=useState<Lesson|null>(null),[detail,setDetail]=useState<Detail|null>(null),[detailBusy,setDetailBusy]=useState(false),[saving,setSaving]=useState(false),[toast,setToast]=useState("");
  const[meta,setMeta]=useState<Meta>({teachers:[],classes:[],schedules:[]}),[adminModal,setAdminModal]=useState<"change"|"makeup"|"event"|null>(null);
@@ -187,6 +198,12 @@ export default function Home(){
  const[classModal,setClassModal]=useState(false);
  const[classForm,setClassForm]=useState<any>({});
  const[classStudentSearch,setClassStudentSearch]=useState("");
+ const[adminTeachers,setAdminTeachers]=useState<AdminTeacher[]>([]);
+ const[teachersBusy,setTeachersBusy]=useState(false);
+ const[teacherSearch,setTeacherSearch]=useState("");
+ const[teacherModal,setTeacherModal]=useState(false);
+ const[teacherForm,setTeacherForm]=useState<any>({});
+ const[teacherPin,setTeacherPin]=useState("");
  const[changeForm,setChangeForm]=useState<any>({}),[eventForm,setEventForm]=useState<any>({eventType:"기타"});
  useEffect(()=>{restore()},[]); useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
  const groups=useMemo(()=>ROOMS.map(r=>({room:r,lessons:lessons.filter(l=>room(l.room)===r)})),[lessons]);
@@ -266,6 +283,21 @@ export default function Home(){
      })
      .slice(0,80);
  },[classStudents,classForm.id,classStudentSearch]);
+
+ const filteredAdminTeachers=useMemo(()=>{
+   const q=teacherSearch.trim().toLowerCase();
+
+   if(!q)return adminTeachers;
+
+   return adminTeachers.filter(teacher=>
+     [
+       teacher.teacher_name,
+       teacher.teacher_code
+     ]
+       .filter(Boolean)
+       .some(value=>String(value).toLowerCase().includes(q))
+   );
+ },[adminTeachers,teacherSearch]);
  function visibleWeekDays(){
    if(user?.role!=="admin"||!adminWeekTeacher)return weekDays;
    return weekDays.map(day=>({
@@ -275,6 +307,158 @@ export default function Home(){
  }
  async function restore(){try{const r=await fetch('/api/me',{cache:'no-store'});if(!r.ok)return;const j=await r.json();setUser(j.user);const t=await loadToday();if(t?.date)setWeekBase(t.date);loadClassOptions();if(j.user.role==='admin')loadMeta()}finally{setLoading(false)}}
  async function login(e:FormEvent){e.preventDefault();setError("");if(!/^\d{4}$/.test(pin)){setError('4자리 로그인번호를 입력해주세요.');return}setLoginLoading(true);try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});const j=await r.json();if(!r.ok){setError(j.message||'로그인 실패');return}setUser(j.user);setPin('');const t=await loadToday();if(t?.date)setWeekBase(t.date);loadClassOptions();if(j.user.role==='admin')loadMeta()}finally{setLoginLoading(false)}}
+ async function loadTeachers(){
+  if(user?.role!=='admin')return;
+
+  setTeachersBusy(true);
+
+  try{
+    const r=await fetch('/api/admin/teachers',{cache:'no-store'});
+    const j=await r.json();
+
+    if(!r.ok||!j.ok){
+      setToast(j.message||'선생님 목록을 불러오지 못했습니다.');
+      return;
+    }
+
+    setAdminTeachers(Array.isArray(j.teachers)?j.teachers:[]);
+  }catch(e){
+    console.error('loadTeachers:',e);
+    setToast('선생님관리 화면 표시 중 오류가 발생했습니다.');
+  }finally{
+    setTeachersBusy(false);
+  }
+ }
+
+ function openNewTeacher(){
+  setTeacherForm({
+    id:'',
+    teacherCode:'',
+    teacherName:'',
+    isActive:true
+  });
+  setTeacherPin('');
+  setTeacherModal(true);
+ }
+
+ function openTeacherEdit(teacher:AdminTeacher){
+  setTeacherForm({
+    id:teacher.id,
+    teacherCode:teacher.teacher_code,
+    teacherName:teacher.teacher_name,
+    isActive:teacher.is_active!==false
+  });
+  setTeacherPin('');
+  setTeacherModal(true);
+ }
+
+ async function saveTeacher(){
+  if(!String(teacherForm.teacherName||'').trim()){
+    setToast('선생님 이름을 입력해주세요.');
+    return;
+  }
+
+  const editing=Boolean(teacherForm.id);
+
+  if(!editing&&!/^\d{4,8}$/.test(teacherPin)){
+    setToast('새 선생님 PIN은 숫자 4~8자리로 입력해주세요.');
+    return;
+  }
+
+  const payload={
+    ...teacherForm,
+    pin:teacherPin
+  };
+
+  const r=await fetch(
+    '/api/admin/teachers',
+    {
+      method:editing?'PUT':'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    }
+  );
+
+  const j=await r.json();
+
+  if(!r.ok||!j.ok){
+    setToast(j.message||'선생님 저장에 실패했습니다.');
+    return;
+  }
+
+  setTeacherModal(false);
+  setToast(editing?'선생님 정보 수정 완료':'선생님 등록 완료');
+
+  await Promise.all([
+    loadTeachers(),
+    loadMeta(),
+    loadClassOptions()
+  ]);
+ }
+
+ async function resetTeacherPin(){
+  if(!teacherForm.id)return;
+
+  if(!/^\d{4,8}$/.test(teacherPin)){
+    setToast('새 PIN은 숫자 4~8자리로 입력해주세요.');
+    return;
+  }
+
+  const r=await fetch(
+    '/api/admin/teachers/pin',
+    {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        teacherId:teacherForm.id,
+        pin:teacherPin
+      })
+    }
+  );
+
+  const j=await r.json();
+
+  if(!r.ok||!j.ok){
+    setToast(j.message||'PIN 재설정에 실패했습니다.');
+    return;
+  }
+
+  setTeacherPin('');
+  setToast('PIN 재설정 완료');
+  await loadTeachers();
+ }
+
+ async function deleteTeacher(){
+  if(!teacherForm.id)return;
+
+  if(!window.confirm(`${teacherForm.teacherName} 선생님을 정말 삭제할까요?`))return;
+
+  const r=await fetch(
+    '/api/admin/teachers',
+    {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:teacherForm.id})
+    }
+  );
+
+  const j=await r.json();
+
+  if(!r.ok||!j.ok){
+    setToast(j.message||'선생님 삭제에 실패했습니다.');
+    return;
+  }
+
+  setTeacherModal(false);
+  setToast('선생님 삭제 완료');
+
+  await Promise.all([
+    loadTeachers(),
+    loadMeta(),
+    loadClassOptions()
+  ]);
+ }
+
  async function loadClasses(){
   if(user?.role!=='admin')return;
 
@@ -607,7 +791,7 @@ export default function Home(){
   }
  }
 
- async function switchView(v:"daily"|"work"|"weekly"|"monthly"|"students"|"classes"|"classWeekly"){
+ async function switchView(v:"daily"|"work"|"weekly"|"monthly"|"students"|"classes"|"teachers"|"classWeekly"){
   setView(v);
 
   if(v==='daily'){
@@ -637,6 +821,11 @@ export default function Home(){
 
   if(v==='classes'){
     await loadClasses();
+    return;
+  }
+
+  if(v==='teachers'){
+    await loadTeachers();
     return;
   }
 
@@ -939,18 +1128,20 @@ export default function Home(){
             ?'학생관리'
             :view==='classes'
               ?'반관리'
-              :'반별 주간 관리')
+              :view==='teachers'
+                ?'선생님관리'
+                :'반별 주간 관리')
   :(view==='daily'
     ?`${user.displayName} 오늘 수업`
     :view==='work'
       ?`${user.displayName} 오늘 업무`
       :view==='weekly'
         ?`${user.displayName} 주간 수업`
-        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():loadClassWeek(weekBase)}>↻ 새로고침</button><button className="logout-button" onClick={logout}>로그아웃</button></div></header>
-  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>오늘</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>업무</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>주간</button>{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}{user.role==='admin'&&<button className={`view-tab ${view==='students'?'active':''}`} onClick={()=>switchView('students')}>학생관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='classes'?'active':''}`} onClick={()=>switchView('classes')}>반관리</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>반별</button></div>
-  {view!=='students'&&view!=='classes'&&<div className="admin-tools"><button onClick={openMakeup}>+ 보강 추가</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>}
+        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:view==='teachers'?`${adminTeachers.length}명 등록`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():view==='teachers'?loadTeachers():loadClassWeek(weekBase)}>↻ 새로고침</button><button className="logout-button" onClick={logout}>로그아웃</button></div></header>
+  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>오늘</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>업무</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>주간</button>{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}{user.role==='admin'&&<button className={`view-tab ${view==='students'?'active':''}`} onClick={()=>switchView('students')}>학생관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='classes'?'active':''}`} onClick={()=>switchView('classes')}>반관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='teachers'?'active':''}`} onClick={()=>switchView('teachers')}>선생님관리</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>반별</button></div>
+  {view!=='students'&&view!=='classes'&&view!=='teachers'&&<div className="admin-tools"><button onClick={openMakeup}>+ 보강 추가</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>}
   {view==='daily'&&events.length>0&&<div className="event-strip">{events.map(e=><div key={e.id} className={`event-chip type-${e.event_type}`}><strong>{e.event_type}</strong><span>{e.title}</span>{e.teachers?.teacher_name&&<small>{e.teachers.teacher_name}</small>}</div>)}</div>}
-  {view!=='monthly'&&view!=='students'&&view!=='classes'&&<section className="summary-strip"><div><span>{view==='daily'?'오늘 수업':view==='work'?'오늘 업무':view==='weekly'?'이번 주 수업':'선택 반'}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?'미완료 수업':'업무 미완료'}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>계정</span><strong>{user.role==='admin'?'관리자':user.displayName}</strong></div></section>}
+  {view!=='monthly'&&view!=='students'&&view!=='classes'&&view!=='teachers'&&<section className="summary-strip"><div><span>{view==='daily'?'오늘 수업':view==='work'?'오늘 업무':view==='weekly'?'이번 주 수업':'선택 반'}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?'미완료 수업':'업무 미완료'}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>계정</span><strong>{user.role==='admin'?'관리자':user.displayName}</strong></div></section>}
   {view==='daily'?(user.role==='admin'?<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">ADMIN DAILY</div><h2>강의실별 오늘 시간표</h2></div></div><div className="room-board">{groups.map(g=><section className="room-column" key={g.room}><div className="room-head"><strong>{g.room}</strong><span>{g.lessons.length}개</span></div><div className="room-lessons">{g.lessons.length?g.lessons.map(l=><button key={l.schedule_code} className={`lesson-card ${statusClass(l)}`} onClick={()=>openLesson(l)} onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}><div className="lesson-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="lesson-name">{l.classes?.class_name}</div><div className="lesson-subject">{l.subject}</div><div className="teacher-chip">{l.teachers?.teacher_name}</div><div className="op-badge">{l.operationStatus}</div></button>):<div className="room-empty">수업 없음</div>}</div></section>)}</div><div className="admin-hint">관리자: 수업 클릭 = 수업 작성 · 우클릭 = 당일 변경/휴강</div></section>
   :<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">MY DAILY</div><h2>오늘 내 수업</h2></div></div><div className="teacher-daily-list">{lessons.length?lessons.map(l=><button key={l.schedule_code} className={`teacher-daily-card ${statusClass(l)}`} onClick={()=>openLesson(l)}><div className="teacher-daily-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="teacher-daily-main"><strong>{l.classes?.class_name}</strong><span>{l.subject} · {room(l.room)}</span></div><div className="op-badge">{l.operationStatus}</div></button>):<div className="empty-state">오늘 예정된 수업이 없습니다.</div>}</div></section>)
   :view==='work'?<section className="schedule-panel work-panel">
@@ -1380,6 +1571,64 @@ export default function Home(){
           </div>
         </button>)}
    </div>}
+  </section>:view==='teachers'?<section className="schedule-panel teacher-management-panel">
+   <div className="class-management-head">
+     <div>
+       <div className="section-kicker">TEACHER MANAGEMENT</div>
+       <h2>선생님관리</h2>
+       <div className="admin-week-caption">선생님 정보 · 로그인 PIN · 활성 상태</div>
+     </div>
+
+     <button type="button" className="student-add-button" onClick={openNewTeacher}>+ 선생님 추가</button>
+   </div>
+
+   <div className="student-search-row">
+     <input
+       value={teacherSearch}
+       onChange={e=>setTeacherSearch(e.target.value)}
+       placeholder="선생님 이름 · 코드 검색"
+     />
+     <span>{filteredAdminTeachers.length}명</span>
+   </div>
+
+   {teachersBusy&&<div className="weekly-state-box">선생님 목록을 불러오는 중입니다.</div>}
+
+   {!teachersBusy&&<div className="teacher-admin-grid">
+     {filteredAdminTeachers.length===0
+       ?<div className="student-admin-empty">검색 결과가 없습니다.</div>
+       :filteredAdminTeachers.map(teacher=><button
+          type="button"
+          className={`teacher-admin-card ${teacher.is_active?'':'inactive'}`}
+          key={teacher.id}
+          onClick={()=>openTeacherEdit(teacher)}
+        >
+          <div className="teacher-admin-card-top">
+            <div>
+              <strong>{teacher.teacher_name}</strong>
+              <span>{teacher.teacher_code}</span>
+            </div>
+
+            <em className={teacher.is_active?'active':'inactive'}>
+              {teacher.is_active?'활성':'비활성'}
+            </em>
+          </div>
+
+          <div className="teacher-admin-stats">
+            <div>
+              <span>주간 수업</span>
+              <strong>{teacher.schedule_count}</strong>
+            </div>
+            <div>
+              <span>주담당 반</span>
+              <strong>{teacher.primary_class_count}</strong>
+            </div>
+            <div>
+              <span>로그인</span>
+              <strong>{teacher.has_login?(teacher.login_active?'ON':'OFF'):'미생성'}</strong>
+            </div>
+          </div>
+        </button>)}
+   </div>}
   </section>:<section className="schedule-panel class-week-panel printable-schedule">
    <div className="weekly-toolbar">
      <div>
@@ -1516,7 +1765,83 @@ export default function Home(){
    </>}
   </section>}
  </div></main>
- {classModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setClassModal(false)}}>
+ {teacherModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setTeacherModal(false)}}>
+ <section className="lesson-modal teacher-edit-modal">
+   <header className="modal-head">
+     <div>
+       <div className="modal-kicker">TEACHER</div>
+       <h2>{teacherForm.id?'선생님 정보 수정':'선생님 추가'}</h2>
+       <div className="modal-sub">{teacherForm.id?teacherForm.teacherName:'새 선생님과 로그인 PIN을 등록합니다.'}</div>
+     </div>
+     <button className="modal-close" onClick={()=>setTeacherModal(false)}>×</button>
+   </header>
+
+   <div className="modal-body">
+     <div className="student-edit-grid">
+       <label className="admin-field">
+         <span>선생님 이름 *</span>
+         <input
+           value={teacherForm.teacherName||''}
+           onChange={e=>setTeacherForm((f:any)=>({...f,teacherName:e.target.value}))}
+           placeholder="예: 리나T"
+         />
+       </label>
+
+       <label className="admin-field">
+         <span>선생님 코드</span>
+         <input
+           value={teacherForm.teacherCode||''}
+           disabled={Boolean(teacherForm.id)}
+           onChange={e=>setTeacherForm((f:any)=>({...f,teacherCode:e.target.value}))}
+           placeholder="미입력 시 T012처럼 자동 생성"
+         />
+       </label>
+
+       {teacherForm.id&&<label className="admin-field teacher-active-field">
+         <span>활성 상태</span>
+         <select
+           value={teacherForm.isActive?'active':'inactive'}
+           onChange={e=>setTeacherForm((f:any)=>({...f,isActive:e.target.value==='active'}))}
+         >
+           <option value="active">활성</option>
+           <option value="inactive">비활성</option>
+         </select>
+       </label>}
+
+       <label className="admin-field teacher-pin-field">
+         <span>{teacherForm.id?'새 로그인 PIN':'로그인 PIN *'}</span>
+         <input
+           type="password"
+           inputMode="numeric"
+           maxLength={8}
+           value={teacherPin}
+           onChange={e=>setTeacherPin(e.target.value.replace(/\D/g,''))}
+           placeholder={teacherForm.id?'변경할 때만 입력':'숫자 4~8자리'}
+         />
+       </label>
+     </div>
+
+     {teacherForm.id&&<div className="teacher-pin-action">
+       <div>
+         <strong>PIN 재설정</strong>
+         <span>위에 새 PIN을 입력한 뒤 재설정을 누르세요.</span>
+       </div>
+       <button type="button" onClick={resetTeacherPin}>PIN 재설정</button>
+     </div>}
+
+     <div className="modal-actions student-edit-actions">
+       {teacherForm.id&&<button className="reset-button" onClick={deleteTeacher}>선생님 삭제</button>}
+
+       <div className="student-edit-right">
+         <button className="cancel-button" onClick={()=>setTeacherModal(false)}>닫기</button>
+         <button className="save-button" onClick={saveTeacher}>{teacherForm.id?'정보 저장':'선생님 등록'}</button>
+       </div>
+     </div>
+   </div>
+ </section>
+</div>}
+
+{classModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setClassModal(false)}}>
  <section className="lesson-modal class-edit-modal">
    <header className="modal-head">
      <div>

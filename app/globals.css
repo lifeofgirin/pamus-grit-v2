@@ -2935,3 +2935,195 @@ input {
     grid-column: auto;
   }
 }
+
+
+/* =========================================
+   v12 선생님관리
+========================================= */
+
+.teacher-management-panel {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.teacher-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 9px;
+}
+
+.teacher-admin-card {
+  min-height: 126px;
+  padding: 13px;
+  border: 1px solid #e0e5ed;
+  border-radius: 13px;
+  background: #fff;
+  color: #344158;
+  text-align: left;
+}
+
+.teacher-admin-card:hover {
+  border-color: #abb8e9;
+  background: #fafbff;
+  box-shadow: 0 8px 20px rgba(40,58,110,.07);
+}
+
+.teacher-admin-card.inactive {
+  opacity: .58;
+  background: #f8f9fa;
+}
+
+.teacher-admin-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.teacher-admin-card-top > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teacher-admin-card-top strong {
+  overflow: hidden;
+  color: #25324a;
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-admin-card-top span {
+  color: #9aa4b2;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.teacher-admin-card-top em {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 6.5px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.teacher-admin-card-top em.active {
+  background: #e9f7ef;
+  color: #328058;
+}
+
+.teacher-admin-card-top em.inactive {
+  background: #eceef1;
+  color: #737b87;
+}
+
+.teacher-admin-stats {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 5px;
+}
+
+.teacher-admin-stats > div {
+  padding: 8px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 8px;
+  background: #f6f8fb;
+  text-align: center;
+}
+
+.teacher-admin-stats span {
+  color: #8e99a9;
+  font-size: 6px;
+  font-weight: 850;
+}
+
+.teacher-admin-stats strong {
+  color: #43516a;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.teacher-edit-modal {
+  max-width: 650px;
+}
+
+.teacher-active-field,
+.teacher-pin-field {
+  grid-column: 1 / -1;
+}
+
+.teacher-pin-action {
+  margin-top: 13px;
+  padding: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #e0e5ed;
+  border-radius: 10px;
+  background: #f8faff;
+}
+
+.teacher-pin-action > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teacher-pin-action strong {
+  color: #344158;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.teacher-pin-action span {
+  color: #8b96a7;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.teacher-pin-action button {
+  flex: 0 0 auto;
+  min-height: 31px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #596fca;
+  color: #fff;
+  font-size: 7.5px;
+  font-weight: 950;
+}
+
+@media(max-width:850px) {
+  .teacher-admin-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:650px) {
+  .teacher-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-active-field,
+  .teacher-pin-field {
+    grid-column: auto;
+  }
+
+  .teacher-pin-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .teacher-pin-action button {
+    width: 100%;
+  }
+}
