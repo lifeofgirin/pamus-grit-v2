@@ -3,25 +3,25 @@ import "./globals.css";
 import PwaRegister from "./components/PwaRegister";
 
 export const metadata: Metadata = {
-  title: "Pamus Grit English",
+  title: "PAMUS GRIT",
   description: "Pamus Grit Academy Management v2",
 
   manifest: "/manifest.webmanifest",
-  applicationName: "Pamus Grit English",
+  applicationName: "PAMUS GRIT",
   appleWebApp: {
     capable: true,
-    title: "Pamus Grit",
+    title: "PAMUS GRIT",
     statusBarStyle: "default",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/pamus-icon.svg",
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
 
 export const viewport = {
-  themeColor: "#1f2b46",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

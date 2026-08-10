@@ -4070,3 +4070,89 @@ body {
     font-size: 10px;
   }
 }
+
+
+/* =========================================
+   v16.2 BAND 입력 UI + PWA 브랜드 수정
+========================================= */
+.band-helper-modal .admin-field {
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:8px!important;
+}
+.band-helper-modal .admin-field>span {
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+  color:#27364f!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  line-height:1.35!important;
+}
+.band-helper-modal .admin-field input,
+.band-helper-modal .admin-field select,
+.band-helper-modal .admin-field textarea {
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.band-helper-modal .admin-field input,
+.band-helper-modal .admin-field select {
+  min-height:48px!important;
+  padding:0 13px!important;
+  border:1px solid #dbe2ec!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#25344d!important;
+  font-size:14px!important;
+  font-weight:800!important;
+}
+.band-helper-modal .band-content-field textarea {
+  min-height:200px!important;
+  padding:14px!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  line-height:1.65!important;
+}
+.band-helper-grid {
+  grid-template-columns:1fr!important;
+  gap:15px!important;
+}
+.band-title-field,.band-content-field {
+  grid-column:auto!important;
+}
+.band-preview {
+  margin-top:16px!important;
+}
+.band-preview>span {
+  font-size:9px!important;
+}
+.band-preview>strong {
+  font-size:17px!important;
+}
+.band-preview>p {
+  font-size:12px!important;
+  line-height:1.65!important;
+}
+.band-helper-note {
+  font-size:9px!important;
+  line-height:1.55!important;
+}
+@media(max-width:650px){
+  .band-helper-modal .modal-body {
+    padding-left:16px!important;
+    padding-right:16px!important;
+  }
+  .band-helper-modal .admin-field>span {
+    font-size:14px!important;
+  }
+  .band-helper-modal .admin-field input,
+  .band-helper-modal .admin-field select {
+    font-size:15px!important;
+  }
+  .band-helper-modal .band-content-field textarea {
+    min-height:220px!important;
+    font-size:15px!important;
+  }
+}

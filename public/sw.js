@@ -1,5 +1,5 @@
-const CACHE_NAME = "pamus-grit-v14";
-const APP_SHELL = ["/", "/icon.svg", "/pamus-icon.svg", "/manifest.webmanifest"];
+const CACHE_NAME = "pamus-grit-v16-2";
+const APP_SHELL = ["/", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
