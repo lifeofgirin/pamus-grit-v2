@@ -191,6 +191,8 @@ export default function Home(){
  const[studentModal,setStudentModal]=useState(false);
  const[studentForm,setStudentForm]=useState<any>({});
  const[studentBirthSupported,setStudentBirthSupported]=useState(true);
+ const[studentDetail,setStudentDetail]=useState<any>(null);
+ const[studentDetailBusy,setStudentDetailBusy]=useState(false);
  const[adminClasses,setAdminClasses]=useState<AdminClass[]>([]);
  const[classStudents,setClassStudents]=useState<ClassStudent[]>([]);
  const[classesBusy,setClassesBusy]=useState(false);
@@ -620,7 +622,37 @@ export default function Home(){
   }
  }
 
+ async function loadStudentDetail(studentId:string){
+  if(!studentId)return;
+
+  setStudentDetailBusy(true);
+
+  try{
+    const r=await fetch(
+      `/api/admin/students/${encodeURIComponent(studentId)}/detail`,
+      {cache:'no-store'}
+    );
+    const j=await r.json();
+
+    if(!r.ok||!j.ok){
+      setStudentDetail(null);
+      setToast(j.message||'학생 상세 정보를 불러오지 못했습니다.');
+      return;
+    }
+
+    setStudentDetail(j);
+  }catch(e){
+    console.error('loadStudentDetail:',e);
+    setStudentDetail(null);
+    setToast('학생 상세 정보 표시 중 오류가 발생했습니다.');
+  }finally{
+    setStudentDetailBusy(false);
+  }
+ }
+
  function openNewStudent(){
+  setStudentDetail(null);
+  setStudentDetailBusy(false);
   setStudentForm({
     id:'',
     studentName:'',
@@ -643,7 +675,9 @@ export default function Home(){
     birthDate:student.birth_date,
     classId:student.class_id
   });
+  setStudentDetail(null);
   setStudentModal(true);
+  loadStudentDetail(student.id);
  }
 
  async function saveStudent(){
@@ -668,9 +702,14 @@ export default function Home(){
     return;
   }
 
-  setStudentModal(false);
   setToast(editing?'학생 정보 수정 완료':'학생 등록 완료');
   await loadStudents();
+
+  if(editing){
+    await loadStudentDetail(studentForm.id);
+  }else{
+    setStudentModal(false);
+  }
  }
 
  async function deleteStudent(){
@@ -1946,7 +1985,7 @@ export default function Home(){
  </section>
 </div>}
 
-{studentModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setStudentModal(false)}}>
+{studentModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setStudentModal(false);setStudentDetail(null)}}}>
  <section className="lesson-modal student-edit-modal">
    <header className="modal-head">
      <div>
@@ -1954,7 +1993,7 @@ export default function Home(){
        <h2>{studentForm.id?'학생 정보 수정':'학생 추가'}</h2>
        <div className="modal-sub">{studentForm.id?studentForm.studentName:'새 학생을 등록합니다.'}</div>
      </div>
-     <button className="modal-close" onClick={()=>setStudentModal(false)}>×</button>
+     <button className="modal-close" onClick={()=>{setStudentModal(false);setStudentDetail(null)}}>×</button>
    </header>
 
    <div className="modal-body">
@@ -2014,10 +2053,104 @@ export default function Home(){
        </label>
      </div>
 
+     {studentForm.id&&<section className="student-detail-section">
+       {studentDetailBusy&&<div className="student-detail-loading">학생 이력을 불러오는 중입니다.</div>}
+
+       {!studentDetailBusy&&studentDetail&&<>
+         <div className="student-profile-strip">
+           <div>
+             <span>현재 반</span>
+             <strong>{studentDetail.student?.class_name||'미배정'}</strong>
+           </div>
+           <div>
+             <span>주담당</span>
+             <strong>{studentDetail.student?.primary_teacher_name||'미지정'}</strong>
+           </div>
+           <div>
+             <span>학교 · 학년</span>
+             <strong>{[studentDetail.student?.school,studentDetail.student?.registered_grade].filter(Boolean).join(' · ')||'-'}</strong>
+           </div>
+         </div>
+
+         <div className="student-history-stats">
+           <div><span>출석</span><strong>{studentDetail.counts?.present||0}</strong></div>
+           <div><span>지각</span><strong>{studentDetail.counts?.late||0}</strong></div>
+           <div><span>결석</span><strong>{studentDetail.counts?.absent||0}</strong></div>
+           <div><span>보강</span><strong>{studentDetail.counts?.makeup||0}</strong></div>
+         </div>
+
+         <div className="student-detail-columns">
+           <section className="student-history-card">
+             <div className="student-history-title">
+               <h3>최근 출결</h3>
+               <span>최근 30건</span>
+             </div>
+
+             <div className="student-history-list">
+               {studentDetail.attendance?.length
+                 ?studentDetail.attendance.map((row:any,index:number)=><div className="student-history-row" key={`${row.schedule_id}_${row.lesson_date}_${index}`}>
+                    <div className="student-history-date">{short(row.lesson_date)}</div>
+                    <div className="student-history-main">
+                      <strong>{row.class_name||studentDetail.student?.class_name||'수업'}</strong>
+                      <span>{[row.subject,row.teacher_name].filter(Boolean).join(' · ')||'-'}</span>
+                      {(row.attendance_memo||row.individual_memo)&&<small>{row.attendance_memo||row.individual_memo}</small>}
+                    </div>
+                    <em className={`history-status status-${row.attendance_status}`}>{row.attendance_status}</em>
+                  </div>)
+                 :<div className="student-detail-empty">아직 저장된 출결 기록이 없습니다.</div>}
+             </div>
+           </section>
+
+           <section className="student-history-card">
+             <div className="student-history-title">
+               <h3>보강 이력</h3>
+               <span>{studentDetail.makeups?.length||0}건</span>
+             </div>
+
+             <div className="student-history-list">
+               {studentDetail.makeups?.length
+                 ?studentDetail.makeups.map((row:any)=><div className="student-history-row" key={row.id}>
+                    <div className="student-history-date">{short(row.date)}</div>
+                    <div className="student-history-main">
+                      <strong>{row.title}</strong>
+                      <span>{[row.subject,row.teacher_name,row.room].filter(Boolean).join(' · ')||'-'}</span>
+                      {row.memo&&<small>{row.memo}</small>}
+                    </div>
+                  </div>)
+                 :<div className="student-detail-empty">등록된 보강 이력이 없습니다.</div>}
+             </div>
+           </section>
+         </div>
+
+         <section className="student-history-card student-progress-history">
+           <div className="student-history-title">
+             <h3>현재 반 최근 진도 · 숙제</h3>
+             <span>최근 {studentDetail.lessonRecords?.length||0}건</span>
+           </div>
+
+           <div className="student-progress-list">
+             {studentDetail.lessonRecords?.length
+               ?studentDetail.lessonRecords.map((row:any,index:number)=><article className="student-progress-row" key={`${row.lesson_date}_${index}`}>
+                  <div className="student-progress-head">
+                    <strong>{short(row.lesson_date)}</strong>
+                    <span>{row.teacher_name||'-'}</span>
+                  </div>
+                  <div className="student-progress-body">
+                    <div><span>진도</span><strong>{row.progress||'-'}</strong></div>
+                    <div><span>숙제</span><strong>{row.homework||'-'}</strong></div>
+                    {row.lesson_memo&&<div className="student-progress-memo"><span>메모</span><strong>{row.lesson_memo}</strong></div>}
+                  </div>
+                </article>)
+               :<div className="student-detail-empty">현재 반에 저장된 진도/숙제가 없습니다.</div>}
+           </div>
+         </section>
+       </>}
+     </section>}
+
      <div className="modal-actions student-edit-actions">
        {studentForm.id&&<button className="reset-button" onClick={deleteStudent}>학생 삭제</button>}
        <div className="student-edit-right">
-         <button className="cancel-button" onClick={()=>setStudentModal(false)}>닫기</button>
+         <button className="cancel-button" onClick={()=>{setStudentModal(false);setStudentDetail(null)}}>닫기</button>
          <button className="save-button" onClick={saveStudent}>{studentForm.id?'수정 저장':'학생 등록'}</button>
        </div>
      </div>
