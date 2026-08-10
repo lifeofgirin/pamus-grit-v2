@@ -2120,7 +2120,7 @@ export default function Home(){
                  }`}
                >
                  <div className="week-card-top">
-                   <strong>{l.start_time?.slice(0,5)}</strong>
+                   <strong>{l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}</strong>
                    <span>{room(l.room)}</span>
                  </div>
 
