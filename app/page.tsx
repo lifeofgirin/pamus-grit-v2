@@ -27,6 +27,7 @@ type Lesson = {
   id: string;
   schedule_code: string;
   class_id: string;
+  day_of_week?: number;
   start_time: string;
   end_time: string;
   subject: string;
@@ -40,6 +41,12 @@ type Lesson = {
   attendanceDone: boolean;
   studentCount: number;
   attendanceCount: number;
+};
+
+type WeekDay = {
+  date: string;
+  dayOfWeek: number;
+  lessons: Lesson[];
 };
 
 type LessonStudent = {
@@ -81,6 +88,15 @@ const ATTENDANCE_STATUSES = [
   "보강",
 ];
 
+const WEEKDAY_NAMES = [
+  "",
+  "월",
+  "화",
+  "수",
+  "목",
+  "금",
+];
+
 function cleanRoom(room: string | null) {
   return String(room || "미지정").trim() || "미지정";
 }
@@ -98,6 +114,29 @@ function formatDate(date: string) {
   }).format(parsed);
 }
 
+function formatShortDate(date: string) {
+  if (!date) return "";
+
+  const parsed = new Date(`${date}T00:00:00+09:00`);
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    timeZone: "Asia/Seoul",
+  }).format(parsed);
+}
+
+function addDateDays(date: string, amount: number) {
+  const parsed = new Date(`${date}T00:00:00+09:00`);
+  parsed.setDate(parsed.getDate() + amount);
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] =
@@ -109,9 +148,20 @@ export default function Home() {
   const [user, setUser] =
     useState<User | null>(null);
 
+  const [viewMode, setViewMode] =
+    useState<"daily" | "weekly">("daily");
+
   const [date, setDate] = useState("");
   const [lessons, setLessons] =
     useState<Lesson[]>([]);
+
+  const [weekBaseDate, setWeekBaseDate] =
+    useState("");
+
+  const [weekStart, setWeekStart] = useState("");
+  const [weekEnd, setWeekEnd] = useState("");
+  const [weekDays, setWeekDays] =
+    useState<WeekDay[]>([]);
 
   const [scheduleLoading, setScheduleLoading] =
     useState(false);
@@ -169,6 +219,35 @@ export default function Home() {
     }));
   }, [lessons]);
 
+  const weeklyLessonCount = useMemo(
+    () =>
+      weekDays.reduce(
+        (sum, day) =>
+          sum + day.lessons.length,
+        0
+      ),
+    [weekDays]
+  );
+
+  const dailyPendingCount = lessons.filter(
+    (lesson) =>
+      !lesson.progressDone ||
+      !lesson.homeworkDone ||
+      !lesson.attendanceDone
+  ).length;
+
+  const weeklyPendingCount = weekDays.reduce(
+    (sum, day) =>
+      sum +
+      day.lessons.filter(
+        (lesson) =>
+          !lesson.progressDone ||
+          !lesson.homeworkDone ||
+          !lesson.attendanceDone
+      ).length,
+    0
+  );
+
   async function restoreSession() {
     try {
       const response = await fetch("/api/me", {
@@ -182,7 +261,12 @@ export default function Home() {
       const result = await response.json();
 
       setUser(result.user);
-      await loadToday();
+
+      const todayData = await loadToday();
+
+      if (todayData?.date) {
+        setWeekBaseDate(todayData.date);
+      }
     } catch {
       // 로그인 화면 유지
     } finally {
@@ -230,7 +314,12 @@ export default function Home() {
 
       setUser(result.user);
       setPin("");
-      await loadToday();
+
+      const todayData = await loadToday();
+
+      if (todayData?.date) {
+        setWeekBaseDate(todayData.date);
+      }
     } catch {
       setError(
         "서버 연결에 실패했습니다."
@@ -254,13 +343,112 @@ export default function Home() {
       const result = await response.json();
 
       if (!response.ok || !result.ok) {
-        return;
+        return null;
       }
 
       setDate(result.date);
       setLessons(result.lessons || []);
+
+      return result;
     } finally {
       setScheduleLoading(false);
+    }
+  }
+
+  async function loadWeek(
+    baseDate?: string
+  ) {
+    setScheduleLoading(true);
+
+    const targetDate =
+      baseDate ||
+      weekBaseDate ||
+      date;
+
+    try {
+      const response = await fetch(
+        `/api/week?date=${encodeURIComponent(
+          targetDate
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        setToast(
+          result.message ||
+            "주간 시간표를 불러오지 못했습니다."
+        );
+        return;
+      }
+
+      setWeekBaseDate(targetDate);
+      setWeekStart(result.weekStart || "");
+      setWeekEnd(result.weekEnd || "");
+      setWeekDays(result.days || []);
+    } catch {
+      setToast(
+        "주간 시간표를 불러오지 못했습니다."
+      );
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
+  async function changeView(
+    mode: "daily" | "weekly"
+  ) {
+    setViewMode(mode);
+
+    if (mode === "daily") {
+      await loadToday();
+      return;
+    }
+
+    await loadWeek(
+      weekBaseDate || date
+    );
+  }
+
+  async function moveWeek(
+    amount: number
+  ) {
+    const base =
+      weekStart ||
+      weekBaseDate ||
+      date;
+
+    const target =
+      addDateDays(base, amount * 7);
+
+    await loadWeek(target);
+  }
+
+  async function goThisWeek() {
+    const todayResult =
+      await loadToday();
+
+    if (todayResult?.date) {
+      setWeekBaseDate(
+        todayResult.date
+      );
+
+      await loadWeek(
+        todayResult.date
+      );
+    }
+  }
+
+  async function refreshCurrentView() {
+    if (viewMode === "weekly") {
+      await loadWeek(
+        weekBaseDate || date
+      );
+    } else {
+      await loadToday();
     }
   }
 
@@ -271,6 +459,7 @@ export default function Home() {
 
     setUser(null);
     setLessons([]);
+    setWeekDays([]);
     setDate("");
     setPin("");
     setError("");
@@ -289,7 +478,7 @@ export default function Home() {
         `/api/lesson/${encodeURIComponent(
           lesson.schedule_code
         )}?date=${encodeURIComponent(
-          lesson.lessonDate || date
+          lesson.lessonDate
         )}`,
         {
           cache: "no-store",
@@ -434,7 +623,14 @@ export default function Home() {
         "수업 내용이 저장되었습니다."
       );
 
-      await loadToday();
+      if (viewMode === "weekly") {
+        await loadWeek(
+          weekBaseDate || detail.date
+        );
+      } else {
+        await loadToday();
+      }
+
       closeLesson();
     } catch {
       setToast(
@@ -445,12 +641,43 @@ export default function Home() {
     }
   }
 
-  const pendingCount = lessons.filter(
-    (lesson) =>
-      !lesson.progressDone ||
-      !lesson.homeworkDone ||
-      !lesson.attendanceDone
-  ).length;
+  function renderStatusRow(
+    lesson: Lesson
+  ) {
+    return (
+      <div className="status-row">
+        <span
+          className={
+            lesson.progressDone
+              ? "status done"
+              : "status pending"
+          }
+        >
+          진도
+        </span>
+
+        <span
+          className={
+            lesson.homeworkDone
+              ? "status done"
+              : "status pending"
+          }
+        >
+          숙제
+        </span>
+
+        <span
+          className={
+            lesson.attendanceDone
+              ? "status done"
+              : "status pending"
+          }
+        >
+          출결
+        </span>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -527,6 +754,15 @@ export default function Home() {
     );
   }
 
+  const headerTitle =
+    user.role === "admin"
+      ? viewMode === "weekly"
+        ? "전체 주간 수업"
+        : "오늘 전체 수업"
+      : viewMode === "weekly"
+        ? `${user.displayName} 주간 수업`
+        : `${user.displayName} 오늘 수업`;
+
   return (
     <>
       <main className="app-shell">
@@ -538,13 +774,17 @@ export default function Home() {
               </div>
 
               <h1 className="dashboard-title">
-                {user.role === "admin"
-                  ? "오늘 전체 수업"
-                  : `${user.displayName} 오늘 수업`}
+                {headerTitle}
               </h1>
 
               <div className="date-text">
-                {formatDate(date)}
+                {viewMode === "weekly"
+                  ? `${formatShortDate(
+                      weekStart
+                    )} ~ ${formatShortDate(
+                      weekEnd
+                    )}`
+                  : formatDate(date)}
               </div>
             </div>
 
@@ -552,7 +792,7 @@ export default function Home() {
               <button
                 className="refresh-button"
                 type="button"
-                onClick={loadToday}
+                onClick={refreshCurrentView}
               >
                 ↻ 새로고침
               </button>
@@ -567,24 +807,67 @@ export default function Home() {
             </div>
           </header>
 
+          <div className="view-tabs">
+            <button
+              className={
+                viewMode === "daily"
+                  ? "view-tab active"
+                  : "view-tab"
+              }
+              type="button"
+              onClick={() =>
+                changeView("daily")
+              }
+            >
+              오늘
+            </button>
+
+            <button
+              className={
+                viewMode === "weekly"
+                  ? "view-tab active"
+                  : "view-tab"
+              }
+              type="button"
+              onClick={() =>
+                changeView("weekly")
+              }
+            >
+              주간
+            </button>
+          </div>
+
           <section className="summary-strip">
             <div>
-              <span>오늘 수업</span>
+              <span>
+                {viewMode === "weekly"
+                  ? "이번 주 수업"
+                  : "오늘 수업"}
+              </span>
+
               <strong>
-                {lessons.length}
+                {viewMode === "weekly"
+                  ? weeklyLessonCount
+                  : lessons.length}
               </strong>
             </div>
 
             <div>
               <span>업무 미완료</span>
+
               <strong
                 className={
-                  pendingCount > 0
+                  (viewMode === "weekly"
+                    ? weeklyPendingCount
+                    : dailyPendingCount) >
+                  0
                     ? "pending-number"
                     : ""
                 }
               >
-                {pendingCount}
+                {viewMode === "weekly"
+                  ? weeklyPendingCount
+                  : dailyPendingCount}
               </strong>
             </div>
 
@@ -598,160 +881,289 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="schedule-panel">
-            <div className="section-head">
-              <div>
-                <div className="section-kicker">
-                  DAILY SCHEDULE
+          {viewMode === "daily" ? (
+            <section className="schedule-panel">
+              <div className="section-head">
+                <div>
+                  <div className="section-kicker">
+                    DAILY SCHEDULE
+                  </div>
+
+                  <h2>
+                    강의실별 오늘 시간표
+                  </h2>
                 </div>
 
-                <h2>
-                  강의실별 오늘 시간표
-                </h2>
+                {scheduleLoading ? (
+                  <span className="loading-text">
+                    불러오는 중...
+                  </span>
+                ) : (
+                  <span className="board-help">
+                    수업 카드를 눌러 작성
+                  </span>
+                )}
+              </div>
+
+              {lessons.length === 0 &&
+              !scheduleLoading ? (
+                <div className="empty-state">
+                  오늘 예정된 수업이
+                  없습니다.
+                </div>
+              ) : (
+                <div className="room-board">
+                  {roomGroups.map(
+                    (group) => (
+                      <section
+                        className="room-column"
+                        key={group.room}
+                      >
+                        <div className="room-head">
+                          <strong>
+                            {group.room}
+                          </strong>
+
+                          <span>
+                            {
+                              group.lessons
+                                .length
+                            }
+                            개
+                          </span>
+                        </div>
+
+                        <div className="room-lessons">
+                          {group.lessons
+                            .length ===
+                          0 ? (
+                            <div className="room-empty">
+                              수업 없음
+                            </div>
+                          ) : (
+                            group.lessons.map(
+                              (lesson) => (
+                                <button
+                                  type="button"
+                                  className="lesson-card"
+                                  key={
+                                    lesson.schedule_code
+                                  }
+                                  onClick={() =>
+                                    openLesson(
+                                      lesson
+                                    )
+                                  }
+                                >
+                                  <div className="lesson-time">
+                                    <strong>
+                                      {lesson.start_time?.slice(
+                                        0,
+                                        5
+                                      )}
+                                    </strong>
+
+                                    <span>
+                                      ~{" "}
+                                      {lesson.end_time?.slice(
+                                        0,
+                                        5
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  <div className="lesson-name">
+                                    {lesson
+                                      .classes
+                                      ?.class_name ||
+                                      "반 미지정"}
+                                  </div>
+
+                                  <div className="lesson-subject">
+                                    {
+                                      lesson.subject
+                                    }
+                                  </div>
+
+                                  {user.role ===
+                                  "admin" ? (
+                                    <div className="teacher-chip">
+                                      {lesson
+                                        .teachers
+                                        ?.teacher_name ||
+                                        "미지정"}
+                                    </div>
+                                  ) : null}
+
+                                  {renderStatusRow(
+                                    lesson
+                                  )}
+                                </button>
+                              )
+                            )
+                          )}
+                        </div>
+                      </section>
+                    )
+                  )}
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="schedule-panel">
+              <div className="weekly-toolbar">
+                <div>
+                  <div className="section-kicker">
+                    WEEKLY SCHEDULE
+                  </div>
+
+                  <h2>
+                    월~금 주간 시간표
+                  </h2>
+                </div>
+
+                <div className="week-nav">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveWeek(-1)
+                    }
+                  >
+                    ‹ 지난주
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goThisWeek}
+                  >
+                    이번주
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveWeek(1)
+                    }
+                  >
+                    다음주 ›
+                  </button>
+                </div>
               </div>
 
               {scheduleLoading ? (
-                <span className="loading-text">
-                  불러오는 중...
-                </span>
+                <div className="empty-state">
+                  주간 시간표를
+                  불러오는 중입니다.
+                </div>
               ) : (
-                <span className="board-help">
-                  수업 카드를 눌러 작성
-                </span>
-              )}
-            </div>
+                <div className="week-board">
+                  {weekDays.map(
+                    (day) => (
+                      <section
+                        className="week-day-column"
+                        key={day.date}
+                      >
+                        <div className="week-day-head">
+                          <strong>
+                            {
+                              WEEKDAY_NAMES[
+                                day.dayOfWeek
+                              ]
+                            }
+                          </strong>
 
-            {lessons.length === 0 &&
-            !scheduleLoading ? (
-              <div className="empty-state">
-                오늘 예정된 수업이
-                없습니다.
-              </div>
-            ) : (
-              <div className="room-board">
-                {roomGroups.map(
-                  (group) => (
-                    <section
-                      className="room-column"
-                      key={group.room}
-                    >
-                      <div className="room-head">
-                        <strong>
-                          {group.room}
-                        </strong>
+                          <span>
+                            {formatShortDate(
+                              day.date
+                            )}
+                          </span>
 
-                        <span>
-                          {
-                            group.lessons
-                              .length
-                          }
-                          개
-                        </span>
-                      </div>
+                          <small>
+                            {
+                              day.lessons
+                                .length
+                            }
+                            개
+                          </small>
+                        </div>
 
-                      <div className="room-lessons">
-                        {group.lessons
-                          .length === 0 ? (
-                          <div className="room-empty">
-                            수업 없음
-                          </div>
-                        ) : (
-                          group.lessons.map(
-                            (lesson) => (
-                              <button
-                                type="button"
-                                className="lesson-card"
-                                key={
-                                  lesson.schedule_code
-                                }
-                                onClick={() =>
-                                  openLesson(
-                                    lesson
-                                  )
-                                }
-                              >
-                                <div className="lesson-time">
-                                  <strong>
-                                    {lesson.start_time?.slice(
-                                      0,
-                                      5
-                                    )}
-                                  </strong>
-
-                                  <span>
-                                    ~{" "}
-                                    {lesson.end_time?.slice(
-                                      0,
-                                      5
-                                    )}
-                                  </span>
-                                </div>
-
-                                <div className="lesson-name">
-                                  {lesson
-                                    .classes
-                                    ?.class_name ||
-                                    "반 미지정"}
-                                </div>
-
-                                <div className="lesson-subject">
-                                  {
-                                    lesson.subject
+                        <div className="week-day-lessons">
+                          {day.lessons
+                            .length ===
+                          0 ? (
+                            <div className="week-empty">
+                              수업 없음
+                            </div>
+                          ) : (
+                            day.lessons.map(
+                              (lesson) => (
+                                <button
+                                  className="week-lesson-card"
+                                  type="button"
+                                  key={
+                                    lesson.schedule_code
                                   }
-                                </div>
+                                  onClick={() =>
+                                    openLesson(
+                                      lesson
+                                    )
+                                  }
+                                >
+                                  <div className="week-card-top">
+                                    <strong>
+                                      {lesson.start_time?.slice(
+                                        0,
+                                        5
+                                      )}
+                                    </strong>
 
-                                {user.role ===
-                                "admin" ? (
-                                  <div className="teacher-chip">
-                                    {lesson
-                                      .teachers
-                                      ?.teacher_name ||
-                                      "미지정"}
+                                    <span>
+                                      {
+                                        cleanRoom(
+                                          lesson.room
+                                        )
+                                      }
+                                    </span>
                                   </div>
-                                ) : null}
 
-                                <div className="status-row">
-                                  <span
-                                    className={
-                                      lesson.progressDone
-                                        ? "status done"
-                                        : "status pending"
-                                    }
-                                  >
-                                    진도
-                                  </span>
+                                  <div className="lesson-name">
+                                    {lesson
+                                      .classes
+                                      ?.class_name ||
+                                      "반 미지정"}
+                                  </div>
 
-                                  <span
-                                    className={
-                                      lesson.homeworkDone
-                                        ? "status done"
-                                        : "status pending"
+                                  <div className="lesson-subject">
+                                    {
+                                      lesson.subject
                                     }
-                                  >
-                                    숙제
-                                  </span>
+                                  </div>
 
-                                  <span
-                                    className={
-                                      lesson.attendanceDone
-                                        ? "status done"
-                                        : "status pending"
-                                    }
-                                  >
-                                    출결
-                                  </span>
-                                </div>
-                              </button>
+                                  {user.role ===
+                                  "admin" ? (
+                                    <div className="teacher-chip">
+                                      {lesson
+                                        .teachers
+                                        ?.teacher_name ||
+                                        "미지정"}
+                                    </div>
+                                  ) : null}
+
+                                  {renderStatusRow(
+                                    lesson
+                                  )}
+                                </button>
+                              )
                             )
-                          )
-                        )}
-                      </div>
-                    </section>
-                  )
-                )}
-              </div>
-            )}
-          </section>
+                          )}
+                        </div>
+                      </section>
+                    )
+                  )}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </main>
 
@@ -781,6 +1193,10 @@ export default function Home() {
                 </h2>
 
                 <div className="modal-sub">
+                  {formatDate(
+                    selectedLesson.lessonDate
+                  )}
+                  {" · "}
                   {selectedLesson.start_time?.slice(
                     0,
                     5
