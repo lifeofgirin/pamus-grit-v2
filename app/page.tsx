@@ -44,7 +44,7 @@ export default function Home(){
  async function loadMeta(){try{const r=await fetch('/api/admin/meta',{cache:'no-store'});if(!r.ok)return;const j=await r.json();const teachers=Array.isArray(j.teachers)?j.teachers:[];const classes=Array.isArray(j.classes)?j.classes:[];setMeta({teachers,classes,schedules:Array.isArray(j.schedules)?j.schedules:[]});setAdminWeekTeacher(current=>current||teachers[0]?.id||'');setClassWeekClassId(current=>current||classes[0]?.id||'')}catch(e){console.error('loadMeta client:',e)}}
  async function loadToday(){setBusy(true);try{const r=await fetch('/api/today',{cache:'no-store'});const j=await r.json();if(!r.ok)return null;setDate(j.date);setLessons(j.lessons||[]);setEvents(j.events||[]);return j}finally{setBusy(false)}}
  async function loadWeek(base?:string){setBusy(true);try{const target=base||weekBase||date;if(!target){setToast('기준 날짜를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');return}const r=await fetch(`/api/week?date=${encodeURIComponent(target)}`,{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok){setToast(j.message||'주간 시간표를 불러오지 못했습니다.');return}setWeekBase(target);setWeekStart(j.weekStart||'');setWeekEnd(j.weekEnd||'');setWeekDays(Array.isArray(j.days)?j.days:[])}catch(e){console.error('loadWeek client:',e);setToast('주간 화면 표시 중 오류가 발생했습니다.')}finally{setBusy(false)}}
- async function switchView(v:"daily"|"weekly"|"classWeekly"){setView(v);if(v==='daily'){await loadToday();return}if(v==='weekly'){await loadWeek(weekBase||date);return}if(user?.role==='admin'){await loadClassWeek(weekBase||date)}}
+ async function switchView(v:"daily"|"weekly"|"classWeekly"){setView(v);if(v==='daily'){await loadToday();return}if(v==='weekly'){await loadWeek(weekBase||date);return}await loadClassWeek(weekBase||date)}
  async function loadClassWeek(base?:string,classId?:string){
   const targetClass=classId||classWeekClassId;
   const targetDate=base||weekBase||date;
@@ -64,35 +64,53 @@ export default function Home(){
     setClassWeekBusy(false);
   }
  }
- function buildSummaryText(mode:"progress"|"homework"|"all"){
+
+ function summaryText(mode:"progress"|"homework"|"all"){
   if(!classWeekData)return "";
-  const cls=classWeekData.classInfo?.class_name||"반";
-  const rows=Array.isArray(classWeekData.records)?classWeekData.records:[];
-  const grouped=new Map<string,any[]>();
-  rows.forEach((r:any)=>{const arr=grouped.get(r.lesson_date)||[];arr.push(r);grouped.set(r.lesson_date,arr)});
-  const blocks:Array<string>=[];
-  grouped.forEach((list,key)=>{
-    const title=`[${cls} ${short(key)} ${fmt(key).split(' ')[1]||''}]`;
-    const lines=[title];
-    list.forEach((r:any)=>{
-      const head=`- ${r.teacher_name}${r.subject?` · ${r.subject}`:''}`;
-      if(mode==="progress"||mode==="all"){
-        if(String(r.progress||'').trim())lines.push(`${head}\n  진도: ${String(r.progress).trim()}`);
+  const className=classWeekData.classInfo?.class_name||'반';
+  const records=Array.isArray(classWeekData.records)?classWeekData.records:[];
+  const dates=[...new Set(records.map((r:any)=>r.lesson_date))] as string[];
+  const blocks:string[]=[];
+
+  dates.forEach((lessonDate)=>{
+    const rows=records.filter((r:any)=>r.lesson_date===lessonDate);
+    const lines=[`[${className} ${short(lessonDate)}]`];
+
+    rows.forEach((r:any)=>{
+      if(mode==='progress'||mode==='all'){
+        const value=String(r.progress||'').trim();
+        if(value)lines.push(`- ${r.teacher_name} · ${r.subject||'수업'}\n  진도: ${value}`);
       }
-      if(mode==="homework"||mode==="all"){
-        if(String(r.homework||'').trim())lines.push(`${head}\n  숙제: ${String(r.homework).trim()}`);
+      if(mode==='homework'||mode==='all'){
+        const value=String(r.homework||'').trim();
+        if(value)lines.push(`- ${r.teacher_name} · ${r.subject||'수업'}\n  숙제: ${value}`);
       }
     });
+
     if(lines.length>1)blocks.push(lines.join('\n'));
   });
+
   return blocks.join('\n\n');
  }
+
  async function copySummary(mode:"progress"|"homework"|"all"){
-  const text=buildSummaryText(mode);
+  const text=summaryText(mode);
   if(!text){setToast('복사할 작성 내용이 없습니다.');return}
-  try{await navigator.clipboard.writeText(text);setToast(mode==='progress'?'진도 복사 완료':mode==='homework'?'숙제 복사 완료':'진도+숙제 복사 완료')}
-  catch{setToast('클립보드 복사에 실패했습니다.')}
+
+  try{
+    await navigator.clipboard.writeText(text);
+    setToast(
+      mode==='progress'
+        ?'진도 복사 완료'
+        :mode==='homework'
+          ?'숙제 복사 완료'
+          :'전체 복사 완료'
+    );
+  }catch{
+    setToast('클립보드 복사에 실패했습니다.');
+  }
  }
+
  async function logout(){await fetch('/api/logout',{method:'POST'});setUser(null);setLessons([]);setWeekDays([]);setSelected(null)}
  async function openLesson(l:Lesson){if(l.isCustomMakeup){setToast(`${l.classes?.class_name||'보강'} · ${l.start_time?.slice(0,5)} 보강 수업`);return}if(l.operationStatus==='학원방학'||l.operationStatus==='휴강'){if(user?.role==='admin')openChange(l);else setToast(l.operationStatus==='휴강'?'휴강된 수업입니다.':'학원방학입니다.');return}setSelected(l);setDetail(null);setDetailBusy(true);try{const r=await fetch(`/api/lesson/${encodeURIComponent(l.schedule_code)}?date=${l.lessonDate}`,{cache:'no-store'});const j=await r.json();if(!r.ok){setToast(j.message);setSelected(null);return}setDetail(j)}finally{setDetailBusy(false)}}
  function updateRecord(k:string,v:string){setDetail((d:any)=>d?({...d,record:{...d.record,[k]:v}}):d)} function updateStudent(i:number,p:any){setDetail((d:any)=>{if(!d)return d;const s=[...d.students];s[i]={...s[i],...p};return{...d,students:s}})} function allPresent(){setDetail((d:any)=>d?({...d,students:d.students.map((s:any)=>({...s,attendance_status:'출석'}))}):d)}
@@ -183,9 +201,10 @@ export default function Home(){
    <div className="weekly-toolbar">
      <div>
        <div className="section-kicker">CLASS WEEKLY</div>
-       <h2>반별 주간 시간표 · 진도/숙제 요약</h2>
-       <div className="admin-week-caption">반을 선택하면 그 주의 수업과 작성 내용을 한 번에 볼 수 있습니다.</div>
+       <h2>반별 주간 · 진도/숙제 요약</h2>
+       <div className="admin-week-caption">반 하나를 선택해서 월~금 수업과 작성 내용을 한 번에 확인합니다.</div>
      </div>
+
      <div className="week-nav">
        <button onClick={()=>loadClassWeek(add(weekStart||weekBase,-7))}>‹ 지난주</button>
        <button onClick={()=>loadClassWeek(date)}>이번주</button>
@@ -203,8 +222,9 @@ export default function Home(){
        }}
      >
        <option value="">반 선택</option>
-       {meta.classes.map(c=><option value={c.id} key={c.id}>{c.class_name}</option>)}
+       {meta.classes.map(c=><option key={c.id} value={c.id}>{c.class_name}</option>)}
      </select>
+
      <div className="summary-copy-buttons">
        <button onClick={()=>copySummary('progress')}>진도 복사</button>
        <button onClick={()=>copySummary('homework')}>숙제 복사</button>
@@ -213,6 +233,8 @@ export default function Home(){
    </div>
 
    {classWeekBusy&&<div className="weekly-state-box">반별 주간 정보를 불러오는 중입니다.</div>}
+
+   {!classWeekBusy&&!classWeekData&&<div className="weekly-state-box">반을 선택해주세요.</div>}
 
    {!classWeekBusy&&classWeekData&&<>
      <div className="class-week-title">
@@ -227,13 +249,30 @@ export default function Home(){
            <span>{short(d.date)}</span>
            <small>{d.lessons.length}개</small>
          </div>
+
          <div className="week-day-lessons">
-           {d.lessons.length?d.lessons.map((l:any)=><div key={`${l.schedule_code}_${d.date}`} className={`week-lesson-card class-week-card ${l.operationStatus==='휴강'?'cancelled':l.operationStatus==='보강'?'makeup':''}`}>
-             <div className="week-card-top"><strong>{l.start_time?.slice(0,5)}</strong><span>{room(l.room)}</span></div>
-             <div className="lesson-name">{l.subject}</div>
-             <div className="teacher-chip">{l.teachers?.teacher_name||'미지정'}</div>
-             {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
-           </div>):<div className="week-empty">수업 없음</div>}
+           {d.lessons.length
+             ? d.lessons.map((l:any)=><div
+                 key={`${l.schedule_code}_${d.date}`}
+                 className={`week-lesson-card class-week-card ${
+                   l.operationStatus==='휴강'
+                     ?'cancelled'
+                     :l.operationStatus==='보강'
+                       ?'makeup'
+                       :''
+                 }`}
+               >
+                 <div className="week-card-top">
+                   <strong>{l.start_time?.slice(0,5)}</strong>
+                   <span>{room(l.room)}</span>
+                 </div>
+
+                 <div className="lesson-name">{l.subject}</div>
+                 <div className="teacher-chip">{l.teachers?.teacher_name||'미지정'}</div>
+
+                 {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
+               </div>)
+             : <div className="week-empty">수업 없음</div>}
          </div>
        </section>)}
      </div>
@@ -242,21 +281,37 @@ export default function Home(){
        <div className="section-kicker">LESSON SUMMARY</div>
        <h3>진도 · 숙제 통합 요약</h3>
 
-       {(classWeekData.records||[]).length===0?<div className="weekly-state-box">이 주에 작성된 진도/숙제가 없습니다.</div>:
-       <div className="class-summary-list">
-         {Array.from(new Set((classWeekData.records||[]).map((r:any)=>r.lesson_date))).map((lessonDate:any)=><div className="summary-date-group" key={lessonDate}>
-           <div className="summary-date-head">{fmt(String(lessonDate))}</div>
-           {(classWeekData.records||[]).filter((r:any)=>r.lesson_date===lessonDate).map((r:any,index:number)=><article className="summary-record-card" key={`${r.schedule_id}_${index}`}>
-             <div className="summary-record-head">
-               <strong>{r.teacher_name}</strong>
-               <span>{r.subject||'수업'}</span>
-             </div>
-             <div className="summary-content-row"><b>진도</b><p>{r.progress||'작성 없음'}</p></div>
-             <div className="summary-content-row"><b>숙제</b><p>{r.homework||'작성 없음'}</p></div>
-             {r.lesson_memo&&<div className="summary-content-row"><b>메모</b><p>{r.lesson_memo}</p></div>}
-           </article>)}
-         </div>)}
-       </div>}
+       {(classWeekData.records||[]).length===0
+         ? <div className="weekly-state-box">이 주에 작성된 진도/숙제가 없습니다.</div>
+         : <div className="class-summary-list">
+             {([...new Set((classWeekData.records||[]).map((r:any)=>r.lesson_date))] as string[]).map((lessonDate)=><div className="summary-date-group" key={lessonDate}>
+               <div className="summary-date-head">{fmt(lessonDate)}</div>
+
+               {(classWeekData.records||[])
+                 .filter((r:any)=>r.lesson_date===lessonDate)
+                 .map((r:any,index:number)=><article className="summary-record-card" key={`${r.schedule_id}_${index}`}>
+                   <div className="summary-record-head">
+                     <strong>{r.teacher_name}</strong>
+                     <span>{r.subject||'수업'}</span>
+                   </div>
+
+                   <div className="summary-content-row">
+                     <b>진도</b>
+                     <p>{r.progress||'작성 없음'}</p>
+                   </div>
+
+                   <div className="summary-content-row">
+                     <b>숙제</b>
+                     <p>{r.homework||'작성 없음'}</p>
+                   </div>
+
+                   {r.lesson_memo&&<div className="summary-content-row">
+                     <b>메모</b>
+                     <p>{r.lesson_memo}</p>
+                   </div>}
+                 </article>)}
+             </div>)}
+           </div>}
      </section>
    </>}
   </section>}

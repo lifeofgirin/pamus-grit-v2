@@ -6,7 +6,7 @@ import { getKoreaDate } from "@/lib/korea-time";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parseKoreaDate(date: string) {
+function parseDate(date: string) {
   return new Date(`${date}T00:00:00+09:00`);
 }
 
@@ -14,7 +14,7 @@ function addDays(date: Date, amount: number) {
   return new Date(date.getTime() + amount * 86400000);
 }
 
-function dateKey(date: Date) {
+function toDateKey(date: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -30,10 +30,9 @@ function dateKey(date: Date) {
 }
 
 function getMonday(baseDate: string) {
-  const date = parseKoreaDate(baseDate);
+  const date = parseDate(baseDate);
   const day = date.getDay();
   const offset = day === 0 ? -6 : 1 - day;
-
   return addDays(date, offset);
 }
 
@@ -69,7 +68,7 @@ export async function GET(request: Request) {
     const days = Array.from(
       { length: 5 },
       (_, index) => ({
-        date: dateKey(addDays(monday, index)),
+        date: toDateKey(addDays(monday, index)),
         dayOfWeek: index + 1,
       })
     );
@@ -110,7 +109,7 @@ export async function GET(request: Request) {
         `)
         .eq("class_id", classId)
         .eq("is_active", true)
-        .in("day_of_week", [1,2,3,4,5])
+        .in("day_of_week", [1, 2, 3, 4, 5])
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true }),
 
@@ -172,13 +171,6 @@ export async function GET(request: Request) {
     const changes = changesResult.data || [];
     const records = recordsResult.data || [];
 
-    const scheduleMap = new Map(
-      schedules.map((schedule: any) => [
-        schedule.id,
-        schedule,
-      ])
-    );
-
     const changeMap = new Map<string, any>();
 
     for (const change of changes) {
@@ -188,7 +180,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const weekDays = days.map((day) => {
+    const scheduleMap = new Map(
+      schedules.map((schedule: any) => [
+        schedule.id,
+        schedule,
+      ])
+    );
+
+    const responseDays = days.map((day) => {
       const lessons = schedules
         .filter(
           (schedule: any) =>
@@ -207,22 +206,35 @@ export async function GET(request: Request) {
           return {
             id: schedule.id,
             schedule_code: schedule.schedule_code,
+            lessonDate: day.date,
+
             start_time:
-              change?.start_time || schedule.start_time,
+              change?.start_time ||
+              schedule.start_time,
+
             end_time:
-              change?.end_time || schedule.end_time,
+              change?.end_time ||
+              schedule.end_time,
+
             subject:
-              change?.subject ?? schedule.subject,
+              change?.subject ??
+              schedule.subject,
+
             room:
-              change?.room ?? schedule.room,
+              change?.room ??
+              schedule.room,
+
             teacher_id:
-              change?.teacher_id || schedule.teacher_id,
+              change?.teacher_id ||
+              schedule.teacher_id,
+
             teachers: teacher,
+
             operationStatus:
               change?.status || "정상",
+
             operationMemo:
               change?.memo || "",
-            lessonDate: day.date,
           };
         })
         .sort((a: any, b: any) =>
@@ -245,19 +257,21 @@ export async function GET(request: Request) {
       return {
         schedule_id: record.schedule_id,
         lesson_date: record.lesson_date,
-        teacher_id: record.teacher_id,
+
         teacher_name:
           record.teachers?.teacher_name ||
           schedule?.teachers?.teacher_name ||
           "선생님 미지정",
+
         subject:
           schedule?.subject || "",
-        start_time:
-          schedule?.start_time || "",
+
         progress:
           record.progress || "",
+
         homework:
           record.homework || "",
+
         lesson_memo:
           record.lesson_memo || "",
       };
@@ -268,7 +282,7 @@ export async function GET(request: Request) {
       classInfo: classResult.data,
       weekStart,
       weekEnd,
-      days: weekDays,
+      days: responseDays,
       records: summaryRecords,
     });
   } catch (error) {

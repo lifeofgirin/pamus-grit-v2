@@ -1252,12 +1252,8 @@ input {
 
 
 /* =========================================
-   v6 반별 주간 + 진도/숙제 통합 요약
+   v6.1 반별 주간 + 통합 요약
 ========================================= */
-
-.class-week-panel {
-  overflow: visible;
-}
 
 .class-week-toolbar {
   margin-bottom: 14px;
@@ -1268,13 +1264,13 @@ input {
 }
 
 .class-week-toolbar select {
-  min-width: 220px;
+  min-width: 230px;
   min-height: 40px;
   padding: 0 11px;
   border: 1px solid #d6ddea;
   border-radius: 10px;
   background: #fff;
-  color: #39475d;
+  color: #36445a;
   font-size: 10px;
   font-weight: 900;
 }
@@ -1287,19 +1283,19 @@ input {
 .summary-copy-buttons button {
   min-height: 38px;
   padding: 0 11px;
-  border: 1px solid #cfd8f5;
+  border: 1px solid #cad5f5;
   border-radius: 9px;
-  background: #f7f9ff;
+  background: #f6f8ff;
   color: #3157d5;
   font-size: 9px;
   font-weight: 900;
 }
 
 .class-week-title {
-  margin: 4px 0 9px;
+  margin-bottom: 9px;
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
+  align-items: baseline;
   gap: 10px;
 }
 
@@ -1315,7 +1311,7 @@ input {
 }
 
 .class-week-board {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .class-week-card {
@@ -1328,14 +1324,13 @@ input {
 }
 
 .class-summary-section h3 {
-  margin: 4px 0 12px;
+  margin: 5px 0 12px;
   font-size: 19px;
-  letter-spacing: -.035em;
 }
 
 .class-summary-list {
   display: grid;
-  gap: 13px;
+  gap: 14px;
 }
 
 .summary-date-group {
@@ -1344,10 +1339,10 @@ input {
 }
 
 .summary-date-head {
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: 9px;
-  background: #f0f3f8;
-  color: #536074;
+  background: #eef2f7;
+  color: #526075;
   font-size: 9px;
   font-weight: 950;
 }
@@ -1360,10 +1355,10 @@ input {
 }
 
 .summary-record-head {
-  margin-bottom: 9px;
+  margin-bottom: 8px;
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
 }
 
 .summary-record-head strong {
@@ -1381,15 +1376,11 @@ input {
 }
 
 .summary-content-row {
+  padding: 6px 0;
   display: grid;
   grid-template-columns: 42px 1fr;
   gap: 8px;
-  padding: 6px 0;
   border-top: 1px solid #edf0f4;
-}
-
-.summary-content-row:first-of-type {
-  border-top: 0;
 }
 
 .summary-content-row b {
@@ -1424,9 +1415,5 @@ input {
 
   .summary-copy-buttons button {
     flex: 1;
-  }
-
-  .summary-content-row {
-    grid-template-columns: 34px 1fr;
   }
 }
