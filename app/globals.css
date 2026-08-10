@@ -2214,3 +2214,236 @@ input {
     font-size: 7px;
   }
 }
+
+
+/* =========================================
+   v9 월간 학원 일정판
+========================================= */
+
+.monthly-panel {
+  overflow: hidden;
+}
+
+.monthly-toolbar {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.monthly-toolbar h2 {
+  margin: 2px 0 0;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.month-legend {
+  margin-bottom: 9px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.month-legend span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.legend-vacation {
+  background: #feecec;
+  color: #aa3038;
+}
+
+.legend-exam {
+  background: #f2ecff;
+  color: #6545b4;
+}
+
+.legend-dayoff {
+  background: #eceff3;
+  color: #596270;
+}
+
+.legend-etc {
+  background: #eaf3ff;
+  color: #38618c;
+}
+
+.month-calendar {
+  display: grid;
+  grid-template-columns: repeat(7,minmax(0,1fr));
+  border-top: 1px solid #dfe5ee;
+  border-left: 1px solid #dfe5ee;
+  background: #fff;
+}
+
+.month-weekday {
+  min-height: 34px;
+  padding: 10px 6px 7px;
+  border-right: 1px solid #dfe5ee;
+  border-bottom: 1px solid #dfe5ee;
+  background: #f7f9fc;
+  color: #66758c;
+  font-size: 8px;
+  font-weight: 950;
+  text-align: center;
+}
+
+.month-weekday:first-child {
+  color: #d3535d;
+}
+
+.month-weekday:nth-child(7) {
+  color: #5075b8;
+}
+
+.month-day {
+  position: relative;
+  min-height: 126px;
+  padding: 7px;
+  overflow: hidden;
+  border-right: 1px solid #e4e8ef;
+  border-bottom: 1px solid #e4e8ef;
+  background: #fff;
+  cursor: pointer;
+}
+
+.month-day:hover {
+  background: #fbfcff;
+}
+
+.month-day.outside {
+  background: #fafbfc;
+}
+
+.month-day.outside .month-day-number {
+  opacity: .35;
+}
+
+.month-day.today {
+  box-shadow: inset 0 0 0 2px #6f86e8;
+}
+
+.month-day-number {
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.month-day-number span {
+  color: #344258;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.month-day-number small {
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #e9edff;
+  color: #4f64c9;
+  font-size: 5.5px;
+  font-weight: 950;
+}
+
+.month-event-list {
+  display: grid;
+  gap: 3px;
+}
+
+.month-event {
+  width: 100%;
+  min-height: 24px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+  background: #eaf3ff;
+  color: #38618c;
+  text-align: left;
+}
+
+.month-event strong {
+  overflow: hidden;
+  min-width: 0;
+  font-size: 7px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-event span {
+  flex: 0 0 auto;
+  font-size: 5.5px;
+  font-weight: 900;
+  opacity: .8;
+}
+
+.month-event.type-학원방학 {
+  background: #feecec;
+  color: #aa3038;
+}
+
+.month-event.type-시험집중 {
+  background: #f2ecff;
+  color: #6545b4;
+}
+
+.month-event.type-Day-off {
+  background: #eceff3;
+  color: #596270;
+}
+
+.month-add {
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a1abba;
+  font-size: 6.5px;
+  font-weight: 900;
+  opacity: 0;
+}
+
+.month-day:hover .month-add {
+  opacity: 1;
+}
+
+.event-edit-actions {
+  justify-content: space-between;
+}
+
+@media(max-width:900px) {
+  .month-calendar {
+    min-width: 820px;
+  }
+
+  .monthly-panel {
+    overflow-x: auto;
+  }
+}
+
+@media(max-width:650px) {
+  .monthly-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .monthly-toolbar .week-nav {
+    width: 100%;
+  }
+
+  .monthly-toolbar .week-nav button {
+    flex: 1;
+  }
+}

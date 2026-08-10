@@ -94,9 +94,45 @@ const layoutOverlaps=(lessons:Lesson[])=>{
   return result;
 };
 
+
+const monthKeyFromDate=(d:string)=>d?d.slice(0,7):"";
+const addMonths=(month:string,amount:number)=>{
+  if(!month)return month;
+  const [y,m]=month.split("-").map(Number);
+  const x=new Date(Date.UTC(y,m-1+amount,1));
+  return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}`;
+};
+const monthTitle=(month:string)=>{
+  if(!month)return "";
+  const [y,m]=month.split("-").map(Number);
+  return `${y}년 ${m}월`;
+};
+const calendarCells=(month:string)=>{
+  if(!month)return [] as string[];
+
+  const [year,mon]=month.split("-").map(Number);
+  const first=new Date(Date.UTC(year,mon-1,1));
+  const start=new Date(first);
+
+  start.setUTCDate(
+    start.getUTCDate()-start.getUTCDay()
+  );
+
+  return Array.from({length:42},(_,index)=>{
+    const d=new Date(start);
+    d.setUTCDate(start.getUTCDate()+index);
+
+    return [
+      d.getUTCFullYear(),
+      String(d.getUTCMonth()+1).padStart(2,"0"),
+      String(d.getUTCDate()).padStart(2,"0")
+    ].join("-");
+  });
+};
+
 export default function Home(){
  const[loading,setLoading]=useState(true),[loginLoading,setLoginLoading]=useState(false),[pin,setPin]=useState(""),[error,setError]=useState("");
- const[user,setUser]=useState<User|null>(null),[view,setView]=useState<"daily"|"work"|"weekly"|"classWeekly">("daily"),[date,setDate]=useState(""),[lessons,setLessons]=useState<Lesson[]>([]),[events,setEvents]=useState<EventRow[]>([]);
+ const[user,setUser]=useState<User|null>(null),[view,setView]=useState<"daily"|"work"|"weekly"|"monthly"|"classWeekly">("daily"),[date,setDate]=useState(""),[lessons,setLessons]=useState<Lesson[]>([]),[events,setEvents]=useState<EventRow[]>([]);
  const[weekBase,setWeekBase]=useState(""),[weekStart,setWeekStart]=useState(""),[weekEnd,setWeekEnd]=useState(""),[weekDays,setWeekDays]=useState<WeekDay[]>([]),[busy,setBusy]=useState(false);
  const[selected,setSelected]=useState<Lesson|null>(null),[detail,setDetail]=useState<Detail|null>(null),[detailBusy,setDetailBusy]=useState(false),[saving,setSaving]=useState(false),[toast,setToast]=useState("");
  const[meta,setMeta]=useState<Meta>({teachers:[],classes:[],schedules:[]}),[adminModal,setAdminModal]=useState<"change"|"makeup"|"event"|null>(null);
@@ -108,6 +144,9 @@ export default function Home(){
  const[workData,setWorkData]=useState<any>(null);
  const[workBusy,setWorkBusy]=useState(false);
  const[printDays,setPrintDays]=useState<number[]>([1,2,3,4,5]);
+ const[monthBase,setMonthBase]=useState("");
+ const[monthEvents,setMonthEvents]=useState<EventRow[]>([]);
+ const[monthBusy,setMonthBusy]=useState(false);
  const[changeForm,setChangeForm]=useState<any>({}),[eventForm,setEventForm]=useState<any>({eventType:"기타"});
  useEffect(()=>{restore()},[]); useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
  const groups=useMemo(()=>ROOMS.map(r=>({room:r,lessons:lessons.filter(l=>room(l.room)===r)})),[lessons]);
@@ -183,7 +222,63 @@ export default function Home(){
  async function loadMeta(){try{const r=await fetch('/api/admin/meta',{cache:'no-store'});if(!r.ok)return;const j=await r.json();const teachers=Array.isArray(j.teachers)?j.teachers:[];const classes=Array.isArray(j.classes)?j.classes:[];setMeta({teachers,classes,schedules:Array.isArray(j.schedules)?j.schedules:[]});setAdminWeekTeacher(current=>current||teachers[0]?.id||'');setClassWeekClassId(current=>current||classes[0]?.id||'')}catch(e){console.error('loadMeta client:',e)}}
  async function loadToday(){setBusy(true);try{const r=await fetch('/api/today',{cache:'no-store'});const j=await r.json();if(!r.ok)return null;setDate(j.date);setLessons(j.lessons||[]);setEvents(j.events||[]);return j}finally{setBusy(false)}}
  async function loadWeek(base?:string){setBusy(true);try{const target=base||weekBase||date;if(!target){setToast('기준 날짜를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');return}const r=await fetch(`/api/week?date=${encodeURIComponent(target)}`,{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok){setToast(j.message||'주간 시간표를 불러오지 못했습니다.');return}setWeekBase(target);setWeekStart(j.weekStart||'');setWeekEnd(j.weekEnd||'');setWeekDays(Array.isArray(j.days)?j.days:[])}catch(e){console.error('loadWeek client:',e);setToast('주간 화면 표시 중 오류가 발생했습니다.')}finally{setBusy(false)}}
- async function switchView(v:"daily"|"work"|"weekly"|"classWeekly"){setView(v);if(v==='daily'){await loadToday();return}if(v==='work'){await loadWork();return}if(v==='weekly'){await loadWeek(weekBase||date);return}await loadClassWeek(weekBase||date)}
+ async function loadMonth(month?:string){
+  const target=month||monthBase||monthKeyFromDate(date);
+
+  if(!target){
+    setToast('월간 기준 날짜를 불러오는 중입니다.');
+    return;
+  }
+
+  setMonthBusy(true);
+
+  try{
+    const r=await fetch(
+      `/api/admin/month?month=${encodeURIComponent(target)}`,
+      {cache:'no-store'}
+    );
+    const j=await r.json();
+
+    if(!r.ok||!j.ok){
+      setToast(j.message||'월간 일정을 불러오지 못했습니다.');
+      return;
+    }
+
+    setMonthBase(target);
+    setMonthEvents(Array.isArray(j.events)?j.events:[]);
+  }catch(e){
+    console.error('loadMonth:',e);
+    setToast('월간 일정 화면 표시 중 오류가 발생했습니다.');
+  }finally{
+    setMonthBusy(false);
+  }
+ }
+
+ async function switchView(v:"daily"|"work"|"weekly"|"monthly"|"classWeekly"){
+  setView(v);
+
+  if(v==='daily'){
+    await loadToday();
+    return;
+  }
+
+  if(v==='work'){
+    await loadWork();
+    return;
+  }
+
+  if(v==='weekly'){
+    await loadWeek(weekBase||date);
+    return;
+  }
+
+  if(v==='monthly'){
+    await loadMonth(monthBase||monthKeyFromDate(date));
+    return;
+  }
+
+  await loadClassWeek(weekBase||date);
+ }
  async function loadClassWeek(base?:string,classId?:string){
   const targetClass=classId||classWeekClassId;
   const targetDate=base||weekBase||date;
@@ -385,7 +480,83 @@ export default function Home(){
  async function saveCustomMakeup(){const payload={...changeForm};if(user?.role==='teacher')delete payload.teacherId;const r=await fetch('/api/makeup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok){setToast(j.message||'보강 등록 실패');return}setToast('보강 등록 완료');setAdminModal(null);view==='daily'?await loadToday():await loadWeek(weekBase)}
  async function saveChange(){const r=await fetch('/api/admin/schedule-change',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(changeForm)});const j=await r.json();if(!r.ok){setToast(j.message);return}setToast('운영 변경 저장 완료');setAdminModal(null);view==='daily'?await loadToday():await loadWeek(weekBase)}
  async function resetChange(){await fetch('/api/admin/schedule-change',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleId:changeForm.scheduleId,date:changeForm.date})});setAdminModal(null);setToast('기본 시간표로 복원했습니다.');view==='daily'?await loadToday():await loadWeek(weekBase)}
- async function saveEvent(){const r=await fetch('/api/admin/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(eventForm)});const j=await r.json();if(!r.ok){setToast(j.message);return}setAdminModal(null);setToast('학원 일정 저장 완료');view==='daily'?await loadToday():await loadWeek(weekBase)}
+ async function saveEvent(){
+  const editing=Boolean(eventForm.id);
+  const r=await fetch(
+    '/api/admin/event',
+    {
+      method:editing?'PUT':'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(eventForm)
+    }
+  );
+  const j=await r.json();
+
+  if(!r.ok){
+    setToast(j.message||'일정 저장 실패');
+    return;
+  }
+
+  setAdminModal(null);
+  setToast(editing?'학원 일정 수정 완료':'학원 일정 저장 완료');
+
+  if(view==='daily')await loadToday();
+  else if(view==='weekly')await loadWeek(weekBase);
+  else if(view==='monthly')await loadMonth(monthBase);
+ }
+
+ async function deleteEvent(){
+  if(!eventForm.id)return;
+
+  if(!window.confirm('이 일정을 삭제할까요?'))return;
+
+  const r=await fetch(
+    '/api/admin/event',
+    {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:eventForm.id})
+    }
+  );
+  const j=await r.json();
+
+  if(!r.ok){
+    setToast(j.message||'일정 삭제 실패');
+    return;
+  }
+
+  setAdminModal(null);
+  setToast('학원 일정 삭제 완료');
+
+  if(view==='daily')await loadToday();
+  else if(view==='weekly')await loadWeek(weekBase);
+  else if(view==='monthly')await loadMonth(monthBase);
+ }
+
+ function openEventForDate(day:string){
+  setEventForm({
+    eventType:'기타',
+    title:'',
+    startDate:day,
+    endDate:day,
+    teacherId:'',
+    memo:''
+  });
+  setAdminModal('event');
+ }
+
+ function editEvent(event:EventRow){
+  setEventForm({
+    id:event.id,
+    eventType:event.event_type,
+    title:event.title,
+    startDate:event.start_date,
+    endDate:event.end_date,
+    teacherId:event.teacher_id||'',
+    memo:event.memo||''
+  });
+  setAdminModal('event');
+ }
  function pickMakeupSchedule(id:string){const s=meta.schedules.find((x:any)=>x.id===id);setChangeForm((f:any)=>({...f,scheduleId:id,startTime:s?.start_time?.slice(0,5)||'',endTime:s?.end_time?.slice(0,5)||'',subject:s?.subject||'',room:s?.room||'101호',teacherId:s?.teacher_id||''}))}
  const statusClass=(l:Lesson)=>l.operationStatus==='휴강'?'cancelled':l.operationStatus==='보강'?'makeup':l.operationStatus==='학원방학'?'vacation':'';
  if(loading)return <main className="app-shell centered"><div className="loading-card">Pamus Grit을 불러오는 중입니다.</div></main>;
@@ -406,11 +577,11 @@ export default function Home(){
       ?`${user.displayName} 오늘 업무`
       :view==='weekly'
         ?`${user.displayName} 주간 수업`
-        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):loadClassWeek(weekBase)}>↻ 새로고침</button><button className="logout-button" onClick={logout}>로그아웃</button></div></header>
-  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>오늘</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>업무</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>주간</button><button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>반별</button></div>
-  <div className="admin-tools"><button onClick={openMakeup}>+ 보강 추가</button>{user.role==='admin'&&<button onClick={()=>{setEventForm({eventType:'기타',title:'',startDate:date,endDate:date,teacherId:'',memo:''});setAdminModal('event')}}>+ 학원 일정</button>}</div>
+        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):loadClassWeek(weekBase)}>↻ 새로고침</button><button className="logout-button" onClick={logout}>로그아웃</button></div></header>
+  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>오늘</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>업무</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>주간</button>{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>반별</button></div>
+  <div className="admin-tools"><button onClick={openMakeup}>+ 보강 추가</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>
   {view==='daily'&&events.length>0&&<div className="event-strip">{events.map(e=><div key={e.id} className={`event-chip type-${e.event_type}`}><strong>{e.event_type}</strong><span>{e.title}</span>{e.teachers?.teacher_name&&<small>{e.teachers.teacher_name}</small>}</div>)}</div>}
-  <section className="summary-strip"><div><span>{view==='daily'?'오늘 수업':view==='work'?'오늘 업무':view==='weekly'?'이번 주 수업':'선택 반'}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?'미완료 수업':'업무 미완료'}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>계정</span><strong>{user.role==='admin'?'관리자':user.displayName}</strong></div></section>
+  {view!=='monthly'&&<section className="summary-strip"><div><span>{view==='daily'?'오늘 수업':view==='work'?'오늘 업무':view==='weekly'?'이번 주 수업':'선택 반'}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?'미완료 수업':'업무 미완료'}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>계정</span><strong>{user.role==='admin'?'관리자':user.displayName}</strong></div></section>}
   {view==='daily'?(user.role==='admin'?<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">ADMIN DAILY</div><h2>강의실별 오늘 시간표</h2></div></div><div className="room-board">{groups.map(g=><section className="room-column" key={g.room}><div className="room-head"><strong>{g.room}</strong><span>{g.lessons.length}개</span></div><div className="room-lessons">{g.lessons.length?g.lessons.map(l=><button key={l.schedule_code} className={`lesson-card ${statusClass(l)}`} onClick={()=>openLesson(l)} onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}><div className="lesson-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="lesson-name">{l.classes?.class_name}</div><div className="lesson-subject">{l.subject}</div><div className="teacher-chip">{l.teachers?.teacher_name}</div><div className="op-badge">{l.operationStatus}</div></button>):<div className="room-empty">수업 없음</div>}</div></section>)}</div><div className="admin-hint">관리자: 수업 클릭 = 수업 작성 · 우클릭 = 당일 변경/휴강</div></section>
   :<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">MY DAILY</div><h2>오늘 내 수업</h2></div></div><div className="teacher-daily-list">{lessons.length?lessons.map(l=><button key={l.schedule_code} className={`teacher-daily-card ${statusClass(l)}`} onClick={()=>openLesson(l)}><div className="teacher-daily-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="teacher-daily-main"><strong>{l.classes?.class_name}</strong><span>{l.subject} · {room(l.room)}</span></div><div className="op-badge">{l.operationStatus}</div></button>):<div className="empty-state">오늘 예정된 수업이 없습니다.</div>}</div></section>)
   :view==='work'?<section className="schedule-panel work-panel">
@@ -679,6 +850,77 @@ export default function Home(){
            </div>
          </div>
    )}
+  </section>:view==='monthly'?<section className="schedule-panel monthly-panel">
+   <div className="monthly-toolbar">
+     <div>
+       <div className="section-kicker">ACADEMY CALENDAR</div>
+       <h2>{monthTitle(monthBase||monthKeyFromDate(date))}</h2>
+       <div className="admin-week-caption">날짜 클릭 = 일정 추가 · 일정 클릭 = 수정/삭제</div>
+     </div>
+
+     <div className="week-nav">
+       <button onClick={()=>loadMonth(addMonths(monthBase||monthKeyFromDate(date),-1))}>‹ 이전달</button>
+       <button onClick={()=>loadMonth(monthKeyFromDate(date))}>이번달</button>
+       <button onClick={()=>loadMonth(addMonths(monthBase||monthKeyFromDate(date),1))}>다음달 ›</button>
+     </div>
+   </div>
+
+   <div className="month-legend">
+     <span className="legend-vacation">학원방학</span>
+     <span className="legend-exam">시험집중</span>
+     <span className="legend-dayoff">Day-off</span>
+     <span className="legend-etc">기타</span>
+   </div>
+
+   {monthBusy&&<div className="weekly-state-box">월간 일정을 불러오는 중입니다.</div>}
+
+   {!monthBusy&&<div className="month-calendar">
+     {['일','월','화','수','목','금','토'].map(day=><div className="month-weekday" key={day}>{day}</div>)}
+
+     {calendarCells(monthBase||monthKeyFromDate(date)).map(day=>{
+       const inMonth=day.slice(0,7)===(monthBase||monthKeyFromDate(date));
+       const dayEvents=monthEvents.filter(event=>event.start_date<=day&&event.end_date>=day);
+       const dayNumber=Number(day.slice(-2));
+       const isToday=day===date;
+
+       return <div
+         key={day}
+         className={`month-day ${inMonth?'':'outside'} ${isToday?'today':''}`}
+         onClick={()=>openEventForDate(day)}
+       >
+         <div className="month-day-number">
+           <span>{dayNumber}</span>
+           {isToday&&<small>오늘</small>}
+         </div>
+
+         <div className="month-event-list">
+           {dayEvents.map(event=><button
+             type="button"
+             key={`${day}_${event.id}`}
+             className={`month-event type-${event.event_type}`}
+             onClick={e=>{
+               e.stopPropagation();
+               editEvent(event);
+             }}
+           >
+             <strong>{event.title}</strong>
+             {event.teachers?.teacher_name&&<span>{event.teachers.teacher_name}</span>}
+           </button>)}
+         </div>
+
+         <button
+           type="button"
+           className="month-add"
+           onClick={e=>{
+             e.stopPropagation();
+             openEventForDate(day);
+           }}
+         >
+           + 일정
+         </button>
+       </div>;
+     })}
+   </div>}
   </section>:<section className="schedule-panel class-week-panel printable-schedule">
    <div className="weekly-toolbar">
      <div>
@@ -816,7 +1058,7 @@ export default function Home(){
   </section>}
  </div></main>
  {selected&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}><section className="lesson-modal"><header className="modal-head"><div><div className="modal-kicker">LESSON MANAGEMENT</div><h2>{selected.classes?.class_name}</h2><div className="modal-sub">{fmt(selected.lessonDate)} · {selected.start_time?.slice(0,5)} ~ {selected.end_time?.slice(0,5)} · {selected.subject} · {room(selected.room)}</div></div><button className="modal-close" onClick={()=>setSelected(null)}>×</button></header>{detailBusy||!detail?<div className="modal-loading">불러오는 중...</div>:<div className="modal-body"><section className="record-grid"><label className="record-field"><span>수업 진도</span><textarea value={detail.record.progress} onChange={e=>updateRecord('progress',e.target.value)}/></label><label className="record-field"><span>숙제</span><textarea value={detail.record.homework} onChange={e=>updateRecord('homework',e.target.value)}/></label></section><label className="record-field memo-field"><span>특이사항</span><textarea value={detail.record.lesson_memo} onChange={e=>updateRecord('lesson_memo',e.target.value)}/></label><section className="attendance-section"><div className="attendance-head"><h3>학생 출결 <small>{detail.students.length}명</small></h3><button className="all-present-button" onClick={allPresent}>전체 출석</button></div><div className="student-list">{detail.students.map((s,i)=><article className="student-row" key={s.id}><div className="student-info"><strong>{s.student_name}</strong><span>{[s.school,s.registered_grade].filter(Boolean).join(' · ')}</span></div><div className="attendance-buttons">{STATUSES.map(st=><button key={st} className={`attendance-button ${s.attendance_status===st?`active ${st}`:''}`} onClick={()=>updateStudent(i,{attendance_status:st})}>{st}</button>)}</div><input className="attendance-memo" value={s.attendance_memo} onChange={e=>updateStudent(i,{attendance_memo:e.target.value})} placeholder="출결 메모"/></article>)}</div></section><div className="modal-actions"><button className="cancel-button" onClick={()=>setSelected(null)}>닫기</button><button className="save-button" disabled={saving} onClick={saveLesson}>{saving?'저장 중...':'저장'}</button></div></div>}</section></div>}
- {adminModal&&<div className="modal-backdrop"><section className="admin-modal"><header className="modal-head"><div><div className="modal-kicker">ADMIN OPERATION</div><h2>{adminModal==='event'?'학원 일정 등록':adminModal==='makeup'?'보강 수업 추가':'당일 수업 변경'}</h2></div><button className="modal-close" onClick={()=>setAdminModal(null)}>×</button></header><div className="admin-form">{adminModal==='event'?<><label>일정 종류<select value={eventForm.eventType||'기타'} onChange={e=>setEventForm({...eventForm,eventType:e.target.value})}><option>학원방학</option><option>시험집중</option><option>Day-off</option><option>기타</option></select></label><label>제목<input value={eventForm.title||''} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label><div className="two"><label>시작일<input type="date" value={eventForm.startDate||''} onChange={e=>setEventForm({...eventForm,startDate:e.target.value})}/></label><label>종료일<input type="date" value={eventForm.endDate||''} onChange={e=>setEventForm({...eventForm,endDate:e.target.value})}/></label></div><label>선생님 (Day-off용)<select value={eventForm.teacherId||''} onChange={e=>setEventForm({...eventForm,teacherId:e.target.value})}><option value="">전체/없음</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={eventForm.memo||''} onChange={e=>setEventForm({...eventForm,memo:e.target.value})}/></label><button className="save-button wide" onClick={saveEvent}>일정 저장</button></>:<>{adminModal==='makeup'?<><label>보강명 / 학생명<input value={changeForm.title||''} onChange={e=>setChangeForm({...changeForm,title:e.target.value})} placeholder="예: 김민준 개별보강"/></label><div className="two"><label>날짜<input type="date" value={changeForm.date||''} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>강의실<select value={changeForm.room||''} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime||''} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime||''} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject||''} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})} placeholder="예: 문법 보강"/></label>{user.role==='admin'&&<label>담당 선생님<select value={changeForm.teacherId||''} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}><option value="">선생님 선택</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label>}<label>메모<textarea value={changeForm.memo||''} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><button className="save-button wide" onClick={saveCustomMakeup}>보강 등록</button></>:<><div className="two"><label>날짜<input type="date" value={changeForm.date||''} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>상태<select value={changeForm.status||'정상'} onChange={e=>setChangeForm({...changeForm,status:e.target.value})}><option>정상</option><option>휴강</option><option>보강</option></select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime||''} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime||''} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject||''} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})}/></label><label>강의실<select value={changeForm.room||''} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label><label>선생님<select value={changeForm.teacherId||''} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={changeForm.memo||''} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><div className="admin-actions"><button className="reset-button" onClick={resetChange}>기본 시간표 복원</button><button className="save-button" onClick={saveChange}>변경 저장</button></div></>}</>}</div></section></div>}
+ {adminModal&&<div className="modal-backdrop"><section className="admin-modal"><header className="modal-head"><div><div className="modal-kicker">ADMIN OPERATION</div><h2>{adminModal==='event'?(eventForm.id?'학원 일정 수정':'학원 일정 등록'):adminModal==='makeup'?'보강 수업 추가':'당일 수업 변경'}</h2></div><button className="modal-close" onClick={()=>setAdminModal(null)}>×</button></header><div className="admin-form">{adminModal==='event'?<><label>일정 종류<select value={eventForm.eventType||'기타'} onChange={e=>setEventForm({...eventForm,eventType:e.target.value})}><option>학원방학</option><option>시험집중</option><option>Day-off</option><option>기타</option></select></label><label>제목<input value={eventForm.title||''} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label><div className="two"><label>시작일<input type="date" value={eventForm.startDate||''} onChange={e=>setEventForm({...eventForm,startDate:e.target.value})}/></label><label>종료일<input type="date" value={eventForm.endDate||''} onChange={e=>setEventForm({...eventForm,endDate:e.target.value})}/></label></div><label>선생님 (Day-off용)<select value={eventForm.teacherId||''} onChange={e=>setEventForm({...eventForm,teacherId:e.target.value})}><option value="">전체/없음</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={eventForm.memo||''} onChange={e=>setEventForm({...eventForm,memo:e.target.value})}/></label>{eventForm.id?<div className="admin-actions event-edit-actions"><button className="reset-button" onClick={deleteEvent}>일정 삭제</button><button className="save-button" onClick={saveEvent}>수정 저장</button></div>:<button className="save-button wide" onClick={saveEvent}>일정 저장</button>}</>:<>{adminModal==='makeup'?<><label>보강명 / 학생명<input value={changeForm.title||''} onChange={e=>setChangeForm({...changeForm,title:e.target.value})} placeholder="예: 김민준 개별보강"/></label><div className="two"><label>날짜<input type="date" value={changeForm.date||''} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>강의실<select value={changeForm.room||''} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime||''} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime||''} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject||''} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})} placeholder="예: 문법 보강"/></label>{user.role==='admin'&&<label>담당 선생님<select value={changeForm.teacherId||''} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}><option value="">선생님 선택</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label>}<label>메모<textarea value={changeForm.memo||''} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><button className="save-button wide" onClick={saveCustomMakeup}>보강 등록</button></>:<><div className="two"><label>날짜<input type="date" value={changeForm.date||''} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>상태<select value={changeForm.status||'정상'} onChange={e=>setChangeForm({...changeForm,status:e.target.value})}><option>정상</option><option>휴강</option><option>보강</option></select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime||''} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime||''} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject||''} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})}/></label><label>강의실<select value={changeForm.room||''} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label><label>선생님<select value={changeForm.teacherId||''} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={changeForm.memo||''} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><div className="admin-actions"><button className="reset-button" onClick={resetChange}>기본 시간표 복원</button><button className="save-button" onClick={saveChange}>변경 저장</button></div></>}</>}</div></section></div>}
  {toast&&<div className="toast">{toast}</div>}
  </>;
 }
