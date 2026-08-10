@@ -258,15 +258,12 @@ export default function Home(){
 
     if(lines.length>1){
       blocks.push(
-        lines.join('
-')
+        lines.join('\\n')
       );
     }
   });
 
-  return blocks.join('
-
-');
+  return blocks.join('\\n\\n');
  }
 
  async function copySummary(mode:"progress"|"homework"|"all"){
