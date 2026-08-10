@@ -9,47 +9,31 @@ export const dynamic = "force-dynamic";
 async function getAccessibleSchedule(
   scheduleCode: string,
   teacherId: string | null,
-  role: "teacher" | "admin"
+  role: "teacher" | "admin",
+  date: string
 ) {
   const supabase = getSupabaseAdmin();
-
-  let query = supabase
+  const { data: base, error } = await supabase
     .from("schedules")
-    .select(`
-      id,
-      schedule_code,
-      class_id,
-      start_time,
-      end_time,
-      subject,
-      room,
-      teacher_id,
-      classes (
-        class_code,
-        class_name
-      ),
-      teachers (
-        teacher_code,
-        teacher_name
-      )
-    `)
-    .eq("schedule_code", scheduleCode)
-    .eq("is_active", true)
-    .limit(1);
-
-  if (role === "teacher") {
-    if (!teacherId) return null;
-    query = query.eq("teacher_id", teacherId);
-  }
-
-  const { data, error } = await query.maybeSingle();
-
-  if (error) {
-    console.error("schedule access:", error);
-    throw new Error("수업 정보를 불러오지 못했습니다.");
-  }
-
-  return data;
+    .select(`id,schedule_code,class_id,start_time,end_time,subject,room,teacher_id,classes(class_code,class_name),teachers(teacher_code,teacher_name)`)
+    .eq("schedule_code", scheduleCode).eq("is_active", true).maybeSingle();
+  if (error) throw error;
+  if (!base) return null;
+  const { data: change } = await supabase.from("daily_schedule_changes")
+    .select(`status,start_time,end_time,subject,room,teacher_id,memo,teachers(teacher_code,teacher_name)`)
+    .eq("schedule_id", base.id).eq("change_date", date).maybeSingle();
+  const effective:any = { ...base,
+    start_time: change?.start_time || base.start_time,
+    end_time: change?.end_time || base.end_time,
+    subject: change?.subject ?? base.subject,
+    room: change?.room ?? base.room,
+    teacher_id: change?.teacher_id || base.teacher_id,
+    teachers: change?.teacher_id ? change.teachers : base.teachers,
+    operationStatus: change?.status || "정상",
+    operationMemo: change?.memo || ""
+  };
+  if (role === "teacher" && effective.teacher_id !== teacherId) return null;
+  return effective;
 }
 
 export async function GET(
@@ -74,7 +58,8 @@ export async function GET(
     const schedule = await getAccessibleSchedule(
       scheduleCode,
       session.teacherId,
-      session.role
+      session.role,
+      date
     );
 
     if (!schedule) {
@@ -221,7 +206,8 @@ export async function POST(
     const schedule = await getAccessibleSchedule(
       scheduleCode,
       session.teacherId,
-      session.role
+      session.role,
+      date
     );
 
     if (!schedule) {

@@ -2,247 +2,48 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getKoreaDate } from "@/lib/korea-time";
+import { getLessonsForDate } from "@/lib/schedule-ops";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime="nodejs";
+export const dynamic="force-dynamic";
 
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-function parseKoreaDate(date: string) {
-  return new Date(`${date}T00:00:00+09:00`);
+function parseKoreaDate(date:string){ return new Date(`${date}T00:00:00+09:00`); }
+function addDays(date:Date,n:number){ return new Date(date.getTime()+n*86400000); }
+function key(date:Date){
+  const f = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"});
+  return f.format(date);
 }
+function monday(base:string){ const d=parseKoreaDate(base); const day=d.getDay(); return addDays(d,day===0?-6:1-day); }
 
-function toKoreaDateKey(date: Date) {
-  const shifted = new Date(date.getTime() + KST_OFFSET_MS);
+export async function GET(request:Request){
+  try{
+    const session=await getCurrentSession();
+    if(!session) return NextResponse.json({ok:false,message:"로그인이 필요합니다."},{status:401});
+    const url=new URL(request.url);
+    const base=url.searchParams.get("date")||getKoreaDate().date;
+    const mon=monday(base);
+    const days=Array.from({length:5},(_,i)=>({date:key(addDays(mon,i)),dayOfWeek:i+1}));
+    const supabase=getSupabaseAdmin();
+    const responseDays=[];
 
-  return [
-    shifted.getUTCFullYear(),
-    String(shifted.getUTCMonth() + 1).padStart(2, "0"),
-    String(shifted.getUTCDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-function addDays(date: Date, amount: number) {
-  return new Date(date.getTime() + amount * 24 * 60 * 60 * 1000);
-}
-
-function getWeekMonday(baseDateKey: string) {
-  const base = parseKoreaDate(baseDateKey);
-  const jsDay = base.getDay();
-  const mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
-  return addDays(base, mondayOffset);
-}
-
-export async function GET(request: Request) {
-  try {
-    const session = await getCurrentSession();
-
-    if (!session) {
-      return NextResponse.json(
-        { ok: false, message: "로그인이 필요합니다." },
-        { status: 401 }
-      );
+    for(const day of days){
+      const {lessons:rows,events,vacation}=await getLessonsForDate(day.date,day.dayOfWeek,session);
+      if(!rows.length){ responseDays.push({...day,lessons:[],events,vacation}); continue; }
+      const scheduleIds=rows.map((r:any)=>r.id);
+      const classIds=[...new Set(rows.map((r:any)=>r.class_id))];
+      const [records,attendance,students]=await Promise.all([
+        supabase.from("lesson_records").select("schedule_id,progress,homework").eq("lesson_date",day.date).in("schedule_id",scheduleIds),
+        supabase.from("attendance").select("schedule_id,student_id").eq("lesson_date",day.date).in("schedule_id",scheduleIds),
+        supabase.from("students").select("id,class_id").eq("status","재원").in("class_id",classIds)
+      ]);
+      const rm=new Map((records.data||[]).map((r:any)=>[r.schedule_id,r]));
+      const sm=new Map<string,number>(); for(const s of students.data||[]) sm.set(s.class_id,(sm.get(s.class_id)||0)+1);
+      const am=new Map<string,number>(); for(const a of attendance.data||[]) am.set(a.schedule_id,(am.get(a.schedule_id)||0)+1);
+      const lessons=rows.map((r:any)=>{ const rec:any=rm.get(r.id); const sc=sm.get(r.class_id)||0; const ac=am.get(r.id)||0; return {...r,
+        progressDone:Boolean(String(rec?.progress||"").trim()), homeworkDone:Boolean(rec)&&rec?.homework!==null&&rec?.homework!==undefined,
+        attendanceDone:sc===0||ac>=sc, studentCount:sc, attendanceCount:ac}; });
+      responseDays.push({...day,lessons,events,vacation});
     }
-
-    const url = new URL(request.url);
-    const requestedDate =
-      url.searchParams.get("date") || getKoreaDate().date;
-
-    const monday = getWeekMonday(requestedDate);
-
-    const days = Array.from({ length: 5 }, (_, index) => {
-      const date = addDays(monday, index);
-
-      return {
-        date: toKoreaDateKey(date),
-        dayOfWeek: index + 1,
-      };
-    });
-
-    const dateKeys = days.map((day) => day.date);
-    const supabase = getSupabaseAdmin();
-
-    let query = supabase
-      .from("schedules")
-      .select(`
-        id,
-        schedule_code,
-        class_id,
-        day_of_week,
-        start_time,
-        end_time,
-        subject,
-        room,
-        teacher_id,
-        classes (
-          class_code,
-          class_name
-        ),
-        teachers (
-          teacher_code,
-          teacher_name
-        )
-      `)
-      .eq("is_active", true)
-      .in("day_of_week", [1, 2, 3, 4, 5])
-      .order("day_of_week", { ascending: true })
-      .order("start_time", { ascending: true });
-
-    if (session.role === "teacher") {
-      if (!session.teacherId) {
-        return NextResponse.json(
-          { ok: false, message: "선생님 정보가 없습니다." },
-          { status: 403 }
-        );
-      }
-
-      query = query.eq("teacher_id", session.teacherId);
-    }
-
-    const { data: schedules, error } = await query;
-
-    if (error) {
-      console.error("week schedules:", error);
-
-      return NextResponse.json(
-        { ok: false, message: "주간 시간표를 불러오지 못했습니다." },
-        { status: 500 }
-      );
-    }
-
-    const rows = schedules || [];
-
-    if (rows.length === 0) {
-      return NextResponse.json({
-        ok: true,
-        weekStart: dateKeys[0],
-        weekEnd: dateKeys[4],
-        days: days.map((day) => ({
-          ...day,
-          lessons: [],
-        })),
-      });
-    }
-
-    const scheduleIds = rows.map((row) => row.id);
-    const classIds = [...new Set(rows.map((row) => row.class_id))];
-
-    const [
-      recordsResult,
-      attendanceResult,
-      studentsResult,
-    ] = await Promise.all([
-      supabase
-        .from("lesson_records")
-        .select("schedule_id, lesson_date, progress, homework")
-        .gte("lesson_date", dateKeys[0])
-        .lte("lesson_date", dateKeys[4])
-        .in("schedule_id", scheduleIds),
-
-      supabase
-        .from("attendance")
-        .select("schedule_id, lesson_date, student_id")
-        .gte("lesson_date", dateKeys[0])
-        .lte("lesson_date", dateKeys[4])
-        .in("schedule_id", scheduleIds),
-
-      supabase
-        .from("students")
-        .select("id, class_id")
-        .eq("status", "재원")
-        .in("class_id", classIds),
-    ]);
-
-    if (recordsResult.error) {
-      console.error("week records:", recordsResult.error);
-    }
-
-    if (attendanceResult.error) {
-      console.error("week attendance:", attendanceResult.error);
-    }
-
-    if (studentsResult.error) {
-      console.error("week students:", studentsResult.error);
-    }
-
-    const studentCountByClass = new Map<string, number>();
-
-    for (const student of studentsResult.data || []) {
-      studentCountByClass.set(
-        student.class_id,
-        (studentCountByClass.get(student.class_id) || 0) + 1
-      );
-    }
-
-    const recordMap = new Map<string, any>();
-
-    for (const record of recordsResult.data || []) {
-      recordMap.set(
-        `${record.schedule_id}__${record.lesson_date}`,
-        record
-      );
-    }
-
-    const attendanceCountMap = new Map<string, number>();
-
-    for (const attendance of attendanceResult.data || []) {
-      const key =
-        `${attendance.schedule_id}__${attendance.lesson_date}`;
-
-      attendanceCountMap.set(
-        key,
-        (attendanceCountMap.get(key) || 0) + 1
-      );
-    }
-
-    const responseDays = days.map((day) => {
-      const lessons = rows
-        .filter((row) => row.day_of_week === day.dayOfWeek)
-        .map((row) => {
-          const key = `${row.id}__${day.date}`;
-          const record = recordMap.get(key);
-
-          const studentCount =
-            studentCountByClass.get(row.class_id) || 0;
-
-          const attendanceCount =
-            attendanceCountMap.get(key) || 0;
-
-          return {
-            ...row,
-            lessonDate: day.date,
-            progressDone:
-              Boolean(String(record?.progress || "").trim()),
-            homeworkDone:
-              Boolean(record) &&
-              record?.homework !== null &&
-              record?.homework !== undefined,
-            attendanceDone:
-              studentCount === 0 ||
-              attendanceCount >= studentCount,
-            studentCount,
-            attendanceCount,
-          };
-        });
-
-      return {
-        ...day,
-        lessons,
-      };
-    });
-
-    return NextResponse.json({
-      ok: true,
-      weekStart: dateKeys[0],
-      weekEnd: dateKeys[4],
-      days: responseDays,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { ok: false, message: "주간 시간표 조회 중 오류가 발생했습니다." },
-      { status: 500 }
-    );
-  }
+    return NextResponse.json({ok:true,weekStart:days[0].date,weekEnd:days[4].date,days:responseDays});
+  }catch(error){ console.error(error); return NextResponse.json({ok:false,message:"주간 시간표 조회 중 오류가 발생했습니다."},{status:500}); }
 }

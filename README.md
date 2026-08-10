@@ -1,20 +1,10 @@
-# Pamus Grit v2 - v4
+# Pamus Grit v2 - v5
 
-기능
-- 4자리 PIN 로그인
-- 관리자 / 선생님 권한 분리
-- 오늘 강의실별 시간표
-- 월~금 주간 시간표
-- 지난주 / 이번주 / 다음주 이동
-- 주간 수업 카드 클릭 후 해당 날짜 수업 작성
-- 진도 / 숙제 / 특이사항
-- 출석 / 지각 / 결석 / 보강
-- 전체 출석
-- 저장 후 완료 상태 즉시 갱신
+- 교사 일간: 강의실 보드가 아닌 시간순 수업 리스트
+- 관리자 1004 일간: 8개 강의실 보드 유지
+- 당일 휴강 / 시간 / 강의실 / 선생님 / 과목 변경
+- 보강 추가
+- 학원방학 / 시험집중 / Day-off / 기타 일정
+- 오늘 / 주간 화면 반영
 
-추가 SQL은 필요 없습니다.
-
-Vercel 환경변수는 기존 그대로 유지합니다.
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-- SUPABASE_SECRET_KEY
+먼저 `PamusGrit_v2_5차_운영변경_DB설정.sql`을 Supabase SQL Editor에서 1회 실행하세요.
