@@ -6,34 +6,89 @@ import { getKoreaDate } from "@/lib/korea-time";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parseDate(date: string) {
-  return new Date(`${date}T00:00:00+09:00`);
+function parseDateParts(
+  date: string
+) {
+  const [
+    year,
+    month,
+    day,
+  ] = date
+    .split("-")
+    .map(Number);
+
+  return {
+    year,
+    month,
+    day,
+  };
 }
 
-function addDays(date: Date, amount: number) {
-  return new Date(date.getTime() + amount * 86400000);
+function toUtcDate(
+  date: string
+) {
+  const {
+    year,
+    month,
+    day,
+  } = parseDateParts(date);
+
+  return new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
+  );
 }
 
-function toDateKey(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
+function addDays(
+  date: Date,
+  amount: number
+) {
+  const next =
+    new Date(date);
 
-  const map = Object.fromEntries(
-    parts.map((part) => [part.type, part.value])
+  next.setUTCDate(
+    next.getUTCDate() +
+      amount
   );
 
-  return `${map.year}-${map.month}-${map.day}`;
+  return next;
 }
 
-function getMonday(baseDate: string) {
-  const date = parseDate(baseDate);
-  const day = date.getDay();
-  const offset = day === 0 ? -6 : 1 - day;
-  return addDays(date, offset);
+function toDateKey(
+  date: Date
+) {
+  return [
+    date.getUTCFullYear(),
+    String(
+      date.getUTCMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      date.getUTCDate()
+    ).padStart(2, "0"),
+  ].join("-");
+}
+
+function getMonday(
+  baseDate: string
+) {
+  const date =
+    toUtcDate(baseDate);
+
+  const day =
+    date.getUTCDay();
+
+  const offset =
+    day === 0
+      ? -6
+      : 1 - day;
+
+  return addDays(
+    date,
+    offset
+  );
 }
 
 export async function GET(request: Request) {

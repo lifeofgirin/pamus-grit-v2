@@ -1,15 +1,22 @@
-# Pamus Grit v2 - v7.1
+# Pamus Grit v2 - v7.2
 
-## 반별 진도/숙제 요약 수정
-문제:
-- 반별 요약이 lesson_records.class_id로 기록을 찾고 있었음
-- 예전에 저장된 일부 lesson_records의 class_id가 비어 있으면 요약에서 누락됨
+## 주간 날짜 계산 수정
+
+원인:
+- YYYY-MM-DD를 `+09:00` 시각으로 만든 뒤 `getDay()`를 사용해
+  Vercel/Node의 UTC 기준에서 하루 전 요일로 해석될 수 있었음.
+- 2026-08-10 월요일이 일요일처럼 계산되어
+  주간 시작이 2026-08-04처럼 잘못 잡히는 현상이 발생.
 
 수정:
-- 선택한 반의 schedules를 먼저 조회
-- 해당 schedules의 id 전체로 lesson_records 조회
-- 기존 작성 기록도 반별 요약에 표시 가능
-- 관리자/선생님 반별 요약 모두 동일하게 수정
+- 날짜를 "시각"이 아니라 순수 YYYY-MM-DD 달력 날짜로 처리
+- Date.UTC + getUTCDay / getUTCDate 사용
+- /api/week 수정
+- /api/admin/class-week 수정
+- 프론트 지난주/다음주 이동 함수도 UTC 방식으로 수정
 
-기존 v7 오늘 업무 대시보드 포함.
+정상 기대값:
+- 2026-08-10 기준 이번 주 = 2026-08-10 ~ 2026-08-14
+- 2026-08-10 lesson_records의 진도/숙제가 해당 주 요약에 표시
+
 추가 SQL 없음.

@@ -6,11 +6,39 @@ import { getKoreaDate } from "@/lib/korea-time";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parseKoreaDate(
+function parseDateParts(
   date: string
 ) {
+  const [
+    year,
+    month,
+    day,
+  ] = date
+    .split("-")
+    .map(Number);
+
+  return {
+    year,
+    month,
+    day,
+  };
+}
+
+function toUtcDate(
+  date: string
+) {
+  const {
+    year,
+    month,
+    day,
+  } = parseDateParts(date);
+
   return new Date(
-    `${date}T00:00:00+09:00`
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
   );
 }
 
@@ -18,52 +46,39 @@ function addDays(
   date: Date,
   amount: number
 ) {
-  return new Date(
-    date.getTime() +
-      amount * 86400000
+  const next =
+    new Date(date);
+
+  next.setUTCDate(
+    next.getUTCDate() +
+      amount
   );
+
+  return next;
 }
 
 function dateKey(
   date: Date
 ) {
-  const parts =
-    new Intl.DateTimeFormat(
-      "en-US",
-      {
-        timeZone:
-          "Asia/Seoul",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }
-    ).formatToParts(date);
-
-  const map =
-    Object.fromEntries(
-      parts.map((part) => [
-        part.type,
-        part.value,
-      ])
-    );
-
-  return (
-    `${map.year}-` +
-    `${map.month}-` +
-    `${map.day}`
-  );
+  return [
+    date.getUTCFullYear(),
+    String(
+      date.getUTCMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      date.getUTCDate()
+    ).padStart(2, "0"),
+  ].join("-");
 }
 
 function getMonday(
   baseDate: string
 ) {
   const date =
-    parseKoreaDate(
-      baseDate
-    );
+    toUtcDate(baseDate);
 
   const day =
-    date.getDay();
+    date.getUTCDay();
 
   const offset =
     day === 0

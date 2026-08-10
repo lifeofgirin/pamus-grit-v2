@@ -15,7 +15,13 @@ const DAYS=["","월","화","수","목","금"];
 const room=(v:string|null)=>String(v||"미지정").trim()||"미지정";
 const fmt=(d:string)=>d?new Intl.DateTimeFormat("ko-KR",{month:"long",day:"numeric",weekday:"long",timeZone:"Asia/Seoul"}).format(new Date(`${d}T00:00:00+09:00`)):"오늘";
 const short=(d:string)=>d?new Intl.DateTimeFormat("ko-KR",{month:"numeric",day:"numeric",timeZone:"Asia/Seoul"}).format(new Date(`${d}T00:00:00+09:00`)):"";
-const add=(d:string,n:number)=>{const x=new Date(`${d}T00:00:00+09:00`);x.setDate(x.getDate()+n);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`};
+const add=(d:string,n:number)=>{
+  if(!d)return d;
+  const [y,m,day]=d.split("-").map(Number);
+  const x=new Date(Date.UTC(y,m-1,day));
+  x.setUTCDate(x.getUTCDate()+n);
+  return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${String(x.getUTCDate()).padStart(2,"0")}`;
+};
 
 export default function Home(){
  const[loading,setLoading]=useState(true),[loginLoading,setLoginLoading]=useState(false),[pin,setPin]=useState(""),[error,setError]=useState("");
