@@ -178,6 +178,12 @@ export default function Home(){
  const[classWeekClassId,setClassWeekClassId]=useState<string>("");
  const[classWeekData,setClassWeekData]=useState<any>(null);
  const[classWeekBusy,setClassWeekBusy]=useState(false);
+ const[bandModal,setBandModal]=useState(false);
+ const[bandForm,setBandForm]=useState<{date:string;title:string;content:string}>({
+   date:'',
+   title:'',
+   content:''
+ });
  const[accessibleClasses,setAccessibleClasses]=useState<{id:string;class_code:string;class_name:string}[]>([]);
  const[workData,setWorkData]=useState<any>(null);
  const[workBusy,setWorkBusy]=useState(false);
@@ -888,6 +894,230 @@ export default function Home(){
   }finally{
     setClassWeekBusy(false);
   }
+ }
+
+
+ function bandTeacherName(name:string){
+  const raw=String(name||'').trim();
+
+  const aliases:Record<string,string>={
+    '소피아T':'Sophia',
+    '소피아':'Sophia',
+    '에릭T':'Eric',
+    '에릭':'Eric',
+    '리나T':'Rina',
+    '리나':'Rina',
+    '한T':'Han',
+    '한':'Han',
+    '이니T':'Ini',
+    '이니':'Ini',
+    '마이클T':'Michael',
+    '마이클':'Michael',
+    '안나T':'Anna',
+    '안나':'Anna',
+    '메이T':'May',
+    '메이':'May',
+    'Adriana T':'Adriana',
+    'AdrianaT':'Adriana',
+    'Adriana':'Adriana',
+    '현지T':'Hyunji',
+    '현지':'Hyunji',
+    '조이T':'Joy',
+    '조이':'Joy'
+  };
+
+  return aliases[raw]||raw.replace(/\s*T$/i,'').trim()||'Teacher';
+ }
+
+ function bandDraftForDate(lessonDate:string){
+  if(!classWeekData){
+    return {
+      date:lessonDate,
+      title:'',
+      content:''
+    };
+  }
+
+  const className=
+    String(classWeekData.classInfo?.class_name||'반').trim();
+
+  const allRecords=
+    Array.isArray(classWeekData.records)
+      ?classWeekData.records
+      :[];
+
+  const dateRecords=
+    allRecords.filter(
+      (r:any)=>r.lesson_date===lessonDate
+    );
+
+  const homeworkRecords=
+    dateRecords.filter(
+      (r:any)=>String(r.homework||'').trim()
+    );
+
+  const teacherSource=
+    homeworkRecords.length
+      ?homeworkRecords
+      :dateRecords;
+
+  const teacherNames:string[]=[];
+
+  teacherSource.forEach((r:any)=>{
+    const name=bandTeacherName(r.teacher_name);
+
+    if(name&&!teacherNames.includes(name)){
+      teacherNames.push(name);
+    }
+  });
+
+  // 저장 기록이 없는 날에는 해당 날짜의 시간표 선생님을 사용
+  if(!teacherNames.length){
+    const day=
+      (classWeekData.days||[])
+        .find((d:any)=>d.date===lessonDate);
+
+    (day?.lessons||[]).forEach((l:any)=>{
+      const name=
+        bandTeacherName(
+          l.teachers?.teacher_name||''
+        );
+
+      if(name&&!teacherNames.includes(name)){
+        teacherNames.push(name);
+      }
+    });
+  }
+
+  const bracket=
+    teacherNames.length
+      ?`[${teacherNames.join(',')}]`
+      :'';
+
+  const title=
+    `${className}${bracket}숙제`;
+
+  const contentLines=
+    homeworkRecords.map((r:any)=>{
+      const teacher=bandTeacherName(r.teacher_name);
+      const homework=String(r.homework||'').trim();
+
+      return teacherNames.length>1
+        ?`${teacher} - ${homework}`
+        :homework;
+    });
+
+  return {
+    date:lessonDate,
+    title,
+    content:contentLines.join('\n')
+  };
+ }
+
+ function defaultBandDate(){
+  if(!classWeekData)return date;
+
+  const records=
+    Array.isArray(classWeekData.records)
+      ?classWeekData.records
+      :[];
+
+  const homeworkDates=[
+    ...new Set(
+      records
+        .filter((r:any)=>String(r.homework||'').trim())
+        .map((r:any)=>r.lesson_date)
+    )
+  ] as string[];
+
+  if(homeworkDates.includes(date)){
+    return date;
+  }
+
+  const pastOrToday=
+    homeworkDates
+      .filter(d=>d<=date)
+      .sort()
+      .at(-1);
+
+  if(pastOrToday)return pastOrToday;
+
+  if(homeworkDates.length){
+    return [...homeworkDates].sort()[0];
+  }
+
+  const weekDates=
+    (classWeekData.days||[])
+      .map((d:any)=>d.date);
+
+  if(weekDates.includes(date)){
+    return date;
+  }
+
+  return classWeekData.weekStart||date;
+ }
+
+ function openBandHelper(){
+  if(!classWeekData){
+    setToast('반을 먼저 선택해주세요.');
+    return;
+  }
+
+  const targetDate=defaultBandDate();
+  setBandForm(bandDraftForDate(targetDate));
+  setBandModal(true);
+ }
+
+ function changeBandDate(nextDate:string){
+  setBandForm(bandDraftForDate(nextDate));
+ }
+
+ async function copyBandSchedule(){
+  const title=String(bandForm.title||'').trim();
+  const content=String(bandForm.content||'').trim();
+
+  if(!title){
+    setToast('BAND 일정 제목을 입력해주세요.');
+    return;
+  }
+
+  const text=
+    content
+      ?`${title}\n\n${content}`
+      :title;
+
+  try{
+    await navigator.clipboard.writeText(text);
+    setToast('BAND 일정 제목/숙제 복사 완료');
+  }catch{
+    setToast('클립보드 복사에 실패했습니다.');
+  }
+ }
+
+ function openBandApp(){
+  const isMobile=
+    /Android|iPhone|iPad|iPod/i.test(
+      navigator.userAgent
+    );
+
+  if(!isMobile){
+    window.open(
+      'https://band.us',
+      '_blank',
+      'noopener,noreferrer'
+    );
+    return;
+  }
+
+  // BAND 공식 Share 문서에서 사용하는 bandapp:// scheme.
+  // 일정 작성 화면을 직접 여는 공개 scheme은 없어 앱 홈만 연다.
+  window.location.href='bandapp://';
+
+  window.setTimeout(()=>{
+    if(document.visibilityState==='visible'){
+      window.location.href='https://band.us';
+    }
+  },900);
  }
 
  function summaryText(mode:"progress"|"homework"|"all"){
@@ -1700,6 +1930,7 @@ export default function Home(){
        <button onClick={()=>copySummary('progress')}>진도 복사</button>
        <button onClick={()=>copySummary('homework')}>숙제 복사</button>
        <button onClick={()=>copySummary('all')}>전체 복사</button>
+       <button className="band-helper-button" onClick={openBandHelper}>BAND 일정</button>
      </div>
    </div>
 
@@ -1804,7 +2035,74 @@ export default function Home(){
    </>}
   </section>}
  </div></main>
- {teacherModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setTeacherModal(false)}}>
+ {bandModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setBandModal(false)}}>
+ <section className="lesson-modal band-helper-modal">
+   <header className="modal-head">
+     <div>
+       <div className="modal-kicker">BAND HOMEWORK</div>
+       <h2>BAND 일정 등록 도우미</h2>
+       <div className="modal-sub">숙제를 복사한 뒤 모밴드 일정에 붙여넣으면 됩니다.</div>
+     </div>
+     <button className="modal-close" onClick={()=>setBandModal(false)}>×</button>
+   </header>
+
+   <div className="modal-body">
+     <div className="band-helper-grid">
+       <label className="admin-field">
+         <span>숙제 날짜</span>
+         <select
+           value={bandForm.date}
+           onChange={e=>changeBandDate(e.target.value)}
+         >
+           {(classWeekData?.days||[]).map((d:any)=><option key={d.date} value={d.date}>
+             {fmt(d.date)}
+           </option>)}
+         </select>
+       </label>
+
+       <label className="admin-field band-title-field">
+         <span>일정 제목</span>
+         <input
+           value={bandForm.title}
+           onChange={e=>setBandForm(f=>({...f,title:e.target.value}))}
+           placeholder="컬럼비아A[May,Han]숙제"
+         />
+       </label>
+
+       <label className="admin-field band-content-field">
+         <span>숙제 내용</span>
+         <textarea
+           value={bandForm.content}
+           onChange={e=>setBandForm(f=>({...f,content:e.target.value}))}
+           placeholder="그날 작성된 숙제가 자동으로 들어옵니다."
+         />
+       </label>
+     </div>
+
+     <div className="band-preview">
+       <span>미리보기</span>
+       <strong>{bandForm.title||'일정 제목'}</strong>
+       <p>{bandForm.content||'이 날짜에 작성된 숙제가 없습니다. 직접 입력할 수 있습니다.'}</p>
+     </div>
+
+     <div className="band-helper-note">
+       BAND 공개 기능상 외부 앱에서 ‘일정’을 바로 생성할 수는 없어서,
+       여기서 복사한 뒤 BAND 앱의 모밴드 → 일정 추가에 붙여넣는 방식입니다.
+     </div>
+
+     <div className="modal-actions band-helper-actions">
+       <button className="cancel-button" onClick={()=>setBandModal(false)}>닫기</button>
+
+       <div className="band-helper-right">
+         <button className="copy-band-button" onClick={copyBandSchedule}>제목 + 숙제 복사</button>
+         <button className="open-band-button" onClick={openBandApp}>BAND 열기</button>
+       </div>
+     </div>
+   </div>
+ </section>
+</div>}
+
+{teacherModal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setTeacherModal(false)}}>
  <section className="lesson-modal teacher-edit-modal">
    <header className="modal-head">
      <div>
