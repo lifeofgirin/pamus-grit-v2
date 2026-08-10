@@ -1,10 +1,20 @@
-# Pamus Grit v2 - v10.2.1
+# Pamus Grit v2 - v10.3
 
-## 학생관리 빌드 오류 잔여 참조 제거
+학생관리 실제 DB 스키마 기준 재작성.
 
-수정:
-- AdminStudent 타입에서 제거된 student_code 참조 삭제
-- AdminStudent 타입에서 제거된 status 참조 삭제
-- 실제 students 스키마 기준 유지
-- 기능 변경 없음
-- SQL 추가 없음
+실제 사용 컬럼:
+- id
+- student_name
+- school
+- registered_grade
+- registered_school_year
+- birth_date
+- class_id
+
+제거:
+- student_code
+- status
+
+학생 목록 / 검색 / 추가 / 수정 / 반 변경 / 생년월일 / 등록연도 지원.
+
+SQL 추가 없음.

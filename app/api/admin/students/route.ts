@@ -4,12 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 async function requireAdmin(){
   const session=await getCurrentSession();
-
-  if(!session||session.role!=="admin"){
-    return null;
-  }
-
-  return session;
+  return session?.role==="admin" ? session : null;
 }
 
 function text(v:any){
@@ -20,7 +15,6 @@ function nullable(v:any){
   const value=text(v);
   return value||null;
 }
-
 
 export async function GET(){
   const session=await requireAdmin();
@@ -61,7 +55,6 @@ export async function GET(){
 
   return NextResponse.json({
     ok:true,
-    hasBirthDate:true,
     students:(data||[]).map((student:any)=>({
       ...student,
       birth_date:student.birth_date||""
@@ -89,8 +82,6 @@ export async function POST(req:Request){
     );
   }
 
-  const db=getSupabaseAdmin();
-
   const row={
     student_name:studentName,
     school:nullable(body.school),
@@ -99,6 +90,8 @@ export async function POST(req:Request){
     birth_date:nullable(body.birthDate),
     class_id:nullable(body.classId)
   };
+
+  const db=getSupabaseAdmin();
 
   const {error}=await db
     .from("students")
@@ -137,8 +130,6 @@ export async function PUT(req:Request){
     );
   }
 
-  const db=getSupabaseAdmin();
-
   const row={
     student_name:studentName,
     school:nullable(body.school),
@@ -147,6 +138,8 @@ export async function PUT(req:Request){
     birth_date:nullable(body.birthDate),
     class_id:nullable(body.classId)
   };
+
+  const db=getSupabaseAdmin();
 
   const {error}=await db
     .from("students")
@@ -196,7 +189,7 @@ export async function DELETE(req:Request){
     console.error("student delete:",error);
 
     return NextResponse.json(
-      {ok:false,message:"학생 삭제에 실패했습니다. 출결 기록 등이 연결되어 있으면 삭제 대신 상태를 변경해주세요."},
+      {ok:false,message:"학생 삭제에 실패했습니다. 연결된 출결 기록이 있으면 삭제 대신 반 미배정으로 관리해주세요."},
       {status:500}
     );
   }
