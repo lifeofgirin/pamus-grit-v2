@@ -491,6 +491,9 @@ export default function Home(){
 
     setClassScheduleRows(
       (j.rows||[]).map((row:any)=>({
+        _client_id:
+          row.id ||
+          `${row.day_of_week}_${String(row.start_time||'').slice(0,5)}_${Math.random().toString(36).slice(2)}`,
         day_of_week:Number(row.day_of_week),
         start_time:String(row.start_time||'').slice(0,5),
         end_time:String(row.end_time||'').slice(0,5),
@@ -511,6 +514,7 @@ export default function Home(){
   setClassScheduleRows(rows=>[
     ...rows,
     {
+      _client_id:`new_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       day_of_week:1,
       start_time:'14:00',
       end_time:'14:40',
@@ -541,6 +545,18 @@ export default function Home(){
   if(!classScheduleDate){
     setToast('적용 시작일을 선택해주세요.');
     return;
+  }
+
+  for(const row of classScheduleRows){
+    if(!row.start_time||!row.end_time){
+      setToast('모든 수업의 시작/종료 시간을 입력해주세요.');
+      return;
+    }
+
+    if(row.end_time<=row.start_time){
+      setToast('종료 시간은 시작 시간보다 늦어야 합니다.');
+      return;
+    }
   }
 
   if(!window.confirm(
@@ -2378,11 +2394,10 @@ export default function Home(){
               </div>
              :classScheduleRows
                .map((row:any,index:number)=>({row,index}))
-               .sort((a:any,b:any)=>
-                 a.row.day_of_week-b.row.day_of_week ||
-                 String(a.row.start_time).localeCompare(String(b.row.start_time))
-               )
-               .map(({row,index}:any)=><div className="class-schedule-row" key={`${index}_${row.day_of_week}_${row.start_time}`}>
+               .map(({row,index}:any)=><div
+                 className="class-schedule-row"
+                 key={row._client_id||`row_${index}`}
+               >
                  <select
                    aria-label="요일"
                    value={row.day_of_week}
