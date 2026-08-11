@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 
 export const SESSION_COOKIE = "pamus_session";
-const MAX_AGE_SECONDS = 60 * 60 * 12;
+const MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 
 export type SessionPayload = {
   role: "teacher" | "admin";
