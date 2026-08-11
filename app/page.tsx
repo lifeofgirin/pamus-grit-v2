@@ -1564,7 +1564,7 @@ export default function Home(){
       ?`${user.displayName} 오늘 업무`
       :view==='weekly'
         ?`${user.displayName} 주간 수업`
-        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:view==='teachers'?`${adminTeachers.length}명 등록`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():view==='teachers'?loadTeachers():loadClassWeek(weekBase)}>↻ 새로고침</button>{me?.role==='teacher'&&
+        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:view==='teachers'?`${adminTeachers.length}명 등록`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():view==='teachers'?loadTeachers():loadClassWeek(weekBase)}>↻ 새로고침</button>{user.role==='teacher'&&
  <div className="teacher-lang-toggle" role="group" aria-label="Language">
   <button
    type="button"
@@ -2078,7 +2078,7 @@ export default function Home(){
      <div>
        <div className="section-kicker">CLASS WEEKLY</div>
        <h2>{tr('반별 주간 · 진도/숙제 요약','Class Weekly · Progress/Homework')}</h2>
-       <div className="admin-week-caption">{user.role==='admin'?'반 하나를 선택해서 월~금 수업과 작성 내용을 한 번에 확인합니다.':'{tr('내가 담당하는 반의 월~금 수업과 선생님들의 작성 내용을 함께 확인합니다.','View Mon–Fri classes and lesson records for the classes you teach.')}'}</div>
+       <div className="admin-week-caption">{user.role==='admin'?'반 하나를 선택해서 월~금 수업과 작성 내용을 한 번에 확인합니다.':tr('내가 담당하는 반의 월~금 수업과 선생님들의 작성 내용을 함께 확인합니다.','View Mon–Fri classes and lesson records for the classes you teach.')}</div>
      </div>
 
      <div className="week-nav">
