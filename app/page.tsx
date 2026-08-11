@@ -60,7 +60,7 @@ const add=(d:string,n:number)=>{
   x.setUTCDate(x.getUTCDate()+n);
   return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${String(x.getUTCDate()).padStart(2,"0")}`;
 };
-const TT_START=10*60;
+const TT_START=13*60;
 const TT_END=20*60;
 const TT_PX_PER_MIN=1;
 const toMinutes=(v:string)=>{
@@ -69,7 +69,7 @@ const toMinutes=(v:string)=>{
 };
 const ttTop=(v:string)=>Math.max(0,(toMinutes(v)-TT_START)*TT_PX_PER_MIN);
 const ttHeight=(start:string,end:string)=>Math.max(38,(toMinutes(end)-toMinutes(start))*TT_PX_PER_MIN);
-const TT_HOURS=Array.from({length:11},(_,i)=>10+i);
+const TT_HOURS=Array.from({length:8},(_,i)=>13+i);
 const layoutOverlaps=(lessons:Lesson[])=>{
   const sorted=[...lessons].sort((a,b)=>
     toMinutes(a.start_time)-toMinutes(b.start_time) ||
@@ -236,6 +236,66 @@ export default function Home(){
  }
 
  const tr=(ko:string,en:string)=>uiLang==='en'?en:ko;
+
+ const TEACHER_ENGLISH_NAMES:Record<string,string>={
+  '소피아T':'Sophia',
+  '에릭T':'Eric',
+  '리나T':'Lina',
+  '한T':'Han',
+  '이니T':'Iny',
+  '마이클T':'Michael',
+  '안나T':'Anna',
+  '메이T':'May',
+  'Adriana T':'Adriana',
+  '현지T':'Hyunji',
+  '조이T':'Joy'
+ };
+
+ const CLASS_ENGLISH_PREFIXES:[string,string][]=[
+  ['컬럼비아','Columbia'],
+  ['예일','Yale'],
+  ['버클리','Berkeley'],
+  ['프린스턴','Princeton'],
+  ['뉴욕','New york']
+ ];
+
+ function teacherDisplayName(name?:string|null){
+  const raw=String(name||'').trim();
+  if(uiLang!=='en'||!raw)return raw;
+  return TEACHER_ENGLISH_NAMES[raw]||raw;
+ }
+
+ function classDisplayName(name?:string|null){
+  const raw=String(name||'').trim();
+  if(uiLang!=='en'||!raw)return raw;
+
+  for(const [ko,en] of CLASS_ENGLISH_PREFIXES){
+   if(raw.startsWith(ko)){
+    const suffix=raw.slice(ko.length).trim();
+    return suffix?`${en} ${suffix}`:en;
+   }
+  }
+
+  return raw;
+ }
+
+ function statusDisplayName(status?:string|null){
+  const raw=String(status||'');
+  if(uiLang!=='en')return raw;
+
+  const map:Record<string,string>={
+   '정상':'Normal',
+   '휴강':'Cancelled',
+   '보강':'Make-up',
+   '학원방학':'Academy Break',
+   '출석':'Present',
+   '지각':'Late',
+   '결석':'Absent'
+  };
+
+  return map[raw]||raw;
+ }
+
 
  useEffect(()=>{restore()},[]); useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
  const groups=useMemo(()=>ROOMS.map(r=>({room:r,lessons:lessons.filter(l=>room(l.room)===r)})),[lessons]);
@@ -1060,8 +1120,8 @@ export default function Home(){
     '소피아':'Sophia',
     '에릭T':'Eric',
     '에릭':'Eric',
-    '리나T':'Rina',
-    '리나':'Rina',
+    '리나T':'Lina',
+    '리나':'Lina',
     '한T':'Han',
     '한':'Han',
     '이니T':'Ini',
@@ -1546,7 +1606,7 @@ export default function Home(){
   ?(view==='daily'
     ?'오늘 전체 수업'
     :view==='work'
-      ?'오늘 업무 현황'
+      ?tr('오늘 업무 현황','Today Tasks')
       :view==='weekly'
         ?'전체 주간 수업'
         :view==='monthly'
@@ -1582,12 +1642,12 @@ export default function Home(){
   </button>
  </div>}
 <button className="logout-button" onClick={logout}>로그아웃</button></div></header>
-  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>{tr('오늘','Today')}</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>업무</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>{tr('주간','Weekly')}</button>{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}{user.role==='admin'&&<button className={`view-tab ${view==='students'?'active':''}`} onClick={()=>switchView('students')}>학생관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='classes'?'active':''}`} onClick={()=>switchView('classes')}>반관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='teachers'?'active':''}`} onClick={()=>switchView('teachers')}>선생님관리</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>{tr('반별','Classes')}</button></div>
-  {view!=='students'&&view!=='classes'&&view!=='teachers'&&<div className="admin-tools"><button onClick={openMakeup}>+ 보강 추가</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>}
+  <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>{tr('오늘','Today')}</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>{tr('업무','Tasks')}</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>{tr('주간','Weekly')}</button>{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}{user.role==='admin'&&<button className={`view-tab ${view==='students'?'active':''}`} onClick={()=>switchView('students')}>학생관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='classes'?'active':''}`} onClick={()=>switchView('classes')}>반관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='teachers'?'active':''}`} onClick={()=>switchView('teachers')}>선생님관리</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>{tr('반별','Classes')}</button></div>
+  {view!=='students'&&view!=='classes'&&view!=='teachers'&&<div className="admin-tools"><button onClick={openMakeup}>{tr('+ 보강 추가','+ Add Make-up')}</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>}
   {view==='daily'&&events.length>0&&<div className="event-strip">{events.map(e=><div key={e.id} className={`event-chip type-${e.event_type}`}><strong>{e.event_type}</strong><span>{e.title}</span>{e.teachers?.teacher_name&&<small>{e.teachers.teacher_name}</small>}</div>)}</div>}
-  {view!=='monthly'&&view!=='students'&&view!=='classes'&&view!=='teachers'&&<section className="summary-strip"><div><span>{view==='daily'?'오늘 수업':view==='work'?'오늘 업무':view==='weekly'?'이번 주 수업':'선택 반'}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?'미완료 수업':'업무 미완료'}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>계정</span><strong>{user.role==='admin'?'관리자':user.displayName}</strong></div></section>}
-  {view==='daily'?(user.role==='admin'?<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">ADMIN DAILY</div><h2>강의실별 오늘 시간표</h2></div></div><div className="room-board">{groups.map(g=><section className="room-column" key={g.room}><div className="room-head"><strong>{g.room}</strong><span>{g.lessons.length}개</span></div><div className="room-lessons">{g.lessons.length?g.lessons.map(l=><button key={l.schedule_code} className={`lesson-card ${statusClass(l)}`} onClick={()=>openLesson(l)} onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}><div className="lesson-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="lesson-name">{l.classes?.class_name}</div><div className="lesson-subject">{l.subject}</div><div className="teacher-chip">{l.teachers?.teacher_name}</div><div className="op-badge">{l.operationStatus}</div></button>):<div className="room-empty">{tr('수업 없음','No Class')}</div>}</div></section>)}</div><div className="admin-hint">관리자: 수업 클릭 = 수업 작성 · 우클릭 = 당일 변경/휴강</div></section>
-  :<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">MY DAILY</div><h2>오늘 내 수업</h2></div></div><div className="teacher-daily-list">{lessons.length?lessons.map(l=><button key={l.schedule_code} className={`teacher-daily-card ${statusClass(l)}`} onClick={()=>openLesson(l)}><div className="teacher-daily-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="teacher-daily-main"><strong>{l.classes?.class_name}</strong><span>{l.subject} · {room(l.room)}</span></div><div className="op-badge">{l.operationStatus}</div></button>):<div className="empty-state">오늘 예정된 수업이 없습니다.</div>}</div></section>)
+  {view!=='monthly'&&view!=='students'&&view!=='classes'&&view!=='teachers'&&<section className="summary-strip"><div><span>{view==='daily'?tr('오늘 수업','Today Classes'):view==='work'?tr('오늘 업무','Today Tasks'):view==='weekly'?tr('이번 주 수업','This Week Classes'):tr('선택 반','Selected Class')}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?tr('미완료 수업','Incomplete'):tr('업무 미완료','Incomplete Tasks')}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):(classWeekData?.records?.length||0)}</strong></div><div><span>{tr('계정','Account')}</span><strong>{user.role==='admin'?'관리자':teacherDisplayName(user.displayName)}</strong></div></section>}
+  {view==='daily'?(user.role==='admin'?<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">ADMIN DAILY</div><h2>강의실별 오늘 시간표</h2></div></div><div className="room-board">{groups.map(g=><section className="room-column" key={g.room}><div className="room-head"><strong>{g.room}</strong><span>{g.lessons.length}개</span></div><div className="room-lessons">{g.lessons.length?g.lessons.map(l=><button key={l.schedule_code} className={`lesson-card ${statusClass(l)}`} onClick={()=>openLesson(l)} onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}><div className="lesson-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="lesson-name">{classDisplayName(l.classes?.class_name)}</div><div className="lesson-subject">{l.subject}</div><div className="teacher-chip">{teacherDisplayName(l.teachers?.teacher_name)}</div><div className="op-badge">{statusDisplayName(l.operationStatus)}</div></button>):<div className="room-empty">{tr('수업 없음','No Class')}</div>}</div></section>)}</div><div className="admin-hint">관리자: 수업 클릭 = 수업 작성 · 우클릭 = 당일 변경/휴강</div></section>
+  :<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">MY DAILY</div><h2>{tr('오늘 내 수업','My Classes Today')}</h2></div></div><div className="teacher-daily-list">{lessons.length?lessons.map(l=><button key={l.schedule_code} className={`teacher-daily-card ${statusClass(l)}`} onClick={()=>openLesson(l)}><div className="teacher-daily-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="teacher-daily-main"><strong>{classDisplayName(l.classes?.class_name)}</strong><span>{l.subject} · {room(l.room)}</span></div><div className="op-badge">{statusDisplayName(l.operationStatus)}</div></button>):<div className="empty-state">{tr('오늘 예정된 수업이 없습니다.','No classes scheduled today.')}</div>}</div></section>)
   :view==='work'?<section className="schedule-panel work-panel">
    <div className="section-head">
      <div>
@@ -1597,7 +1657,7 @@ export default function Home(){
      {!workBusy&&workData&&<span className="board-help">미완료 수업을 누르면 바로 작성</span>}
    </div>
 
-   {workBusy&&<div className="weekly-state-box">오늘 업무 현황을 불러오는 중입니다.</div>}
+   {workBusy&&<div className="weekly-state-box">{tr('오늘 업무 현황을 불러오는 중입니다.','Loading today tasks...')}</div>}
 
    {!workBusy&&workData&&<>
      <div className="work-summary-grid">
@@ -1612,7 +1672,7 @@ export default function Home(){
        </div>
 
        <div className="work-summary-card warning">
-         <span>미완료</span>
+         <span>{tr('미완료','Incomplete')}</span>
          <strong>{workData.summary?.pendingLessons||0}</strong>
        </div>
 
@@ -1643,7 +1703,7 @@ export default function Home(){
 
                <div className="admin-work-numbers">
                  {group.pendingLessons===0
-                   ? <b className="all-done">완료</b>
+                   ? <b className="all-done">{tr('완료','Complete')}</b>
                    : <b>{group.pendingLessons}개 미완료</b>}
                </div>
              </div>
@@ -1664,14 +1724,14 @@ export default function Home(){
                  <div className="work-lesson-time">{item.start_time?.slice(0,5)}</div>
 
                  <div className="work-lesson-main">
-                   <strong>{item.classes?.class_name||'반 미지정'}</strong>
+                   <strong>{classDisplayName(item.classes?.class_name)||tr('반 미지정','Unassigned Class')}</strong>
                    <span>{item.subject} · {room(item.room)}</span>
                  </div>
 
                  <div className="work-pending-tags">
-                   {!item.progressDone&&<span>진도</span>}
-                   {!item.homeworkDone&&<span>숙제</span>}
-                   {!item.attendanceDone&&<span>출결</span>}
+                   {!item.progressDone&&<span>{tr('진도','Progress')}</span>}
+                   {!item.homeworkDone&&<span>{tr('숙제','Homework')}</span>}
+                   {!item.attendanceDone&&<span>{tr('출결','Attendance')}</span>}
                  </div>
                </button>)}
              </div>}
@@ -1695,14 +1755,14 @@ export default function Home(){
                  </div>
 
                  <div className="work-lesson-main">
-                   <strong>{item.classes?.class_name||'반 미지정'}</strong>
+                   <strong>{classDisplayName(item.classes?.class_name)||tr('반 미지정','Unassigned Class')}</strong>
                    <span>{item.subject} · {room(item.room)}</span>
                  </div>
 
                  <div className="work-pending-tags">
-                   {!item.progressDone&&<span>진도</span>}
-                   {!item.homeworkDone&&<span>숙제</span>}
-                   {!item.attendanceDone&&<span>출결</span>}
+                   {!item.progressDone&&<span>{tr('진도','Progress')}</span>}
+                   {!item.homeworkDone&&<span>{tr('숙제','Homework')}</span>}
+                   {!item.attendanceDone&&<span>{tr('출결','Attendance')}</span>}
                  </div>
                </button>)}
          </div>}
@@ -1781,10 +1841,10 @@ export default function Home(){
                    <strong>{l.start_time?.slice(0,5)}</strong>
                    <span>{room(l.room)}</span>
                  </div>
-                 <div className="lesson-name">{l.classes?.class_name}</div>
+                 <div className="lesson-name">{classDisplayName(l.classes?.class_name)}</div>
                  <div className="lesson-subject">{l.subject}</div>
-                 {!adminWeekTeacher&&<div className="teacher-chip">{l.teachers?.teacher_name}</div>}
-                 {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
+                 {!adminWeekTeacher&&<div className="teacher-chip">{teacherDisplayName(l.teachers?.teacher_name)}</div>}
+                 {l.operationStatus!=='정상'&&<div className="op-badge">{statusDisplayName(l.operationStatus)}</div>}
                </button>):<div className="week-empty">{tr('수업 없음','No Class')}</div>}
              </div>
            </section>)}
@@ -1843,7 +1903,7 @@ export default function Home(){
                      onClick={()=>openLesson(l)}
                    >
                      <div className="tt-lesson-simple">
-                       <strong>{l.classes?.class_name}</strong>
+                       <strong>{classDisplayName(l.classes?.class_name)}</strong>
                        <span>{l.start_time?.slice(0,5)}-{l.end_time?.slice(0,5)}</span>
                      </div>
                      {l.operationStatus!=='정상'&&<em>{l.operationStatus}</em>}
@@ -2098,7 +2158,7 @@ export default function Home(){
        }}
      >
        <option value="">반 선택</option>
-       {accessibleClasses.map(c=><option key={c.id} value={c.id}>{c.class_name}</option>)}
+       {accessibleClasses.map(c=><option key={c.id} value={c.id}>{classDisplayName(c.class_name)}</option>)}
      </select>
 
      <div className="summary-copy-buttons no-print">
@@ -2123,13 +2183,13 @@ export default function Home(){
      <button type="button" className="print-action-button" onClick={printCurrentSchedule}>A4 인쇄</button>
    </div>}
 
-   {classWeekBusy&&<div className="weekly-state-box">반별 주간 정보를 불러오는 중입니다.</div>}
+   {classWeekBusy&&<div className="weekly-state-box">{tr('반별 주간 정보를 불러오는 중입니다.','Loading class weekly information...')}</div>}
 
    {!classWeekBusy&&!classWeekData&&<div className="weekly-state-box">반을 선택해주세요.</div>}
 
    {!classWeekBusy&&classWeekData&&<>
      <div className="class-week-title">
-       <strong>{classWeekData.classInfo?.class_name}</strong>
+       <strong>{classDisplayName(classWeekData.classInfo?.class_name)}</strong>
        <span>{short(classWeekData.weekStart)} ~ {short(classWeekData.weekEnd)}</span>
      </div>
 
@@ -2163,9 +2223,9 @@ export default function Home(){
                  </div>
 
                  <div className="lesson-name class-week-subject">{l.subject}</div>
-                 <div className="teacher-chip class-week-teacher">{l.teachers?.teacher_name||'미지정'}</div>
+                 <div className="teacher-chip class-week-teacher">{teacherDisplayName(l.teachers?.teacher_name)||tr('미지정','Unassigned')}</div>
 
-                 {l.operationStatus!=='정상'&&<div className="op-badge">{l.operationStatus}</div>}
+                 {l.operationStatus!=='정상'&&<div className="op-badge">{statusDisplayName(l.operationStatus)}</div>}
                </div>)
              : <div className="week-empty">{tr('수업 없음','No Class')}</div>}
          </div>
@@ -2186,17 +2246,17 @@ export default function Home(){
                  .filter((r:any)=>r.lesson_date===lessonDate)
                  .map((r:any,index:number)=><article className="summary-record-card" key={`${r.schedule_id}_${index}`}>
                    <div className="summary-record-head">
-                     <strong>{r.teacher_name}</strong>
+                     <strong>{teacherDisplayName(r.teacher_name)}</strong>
                      <span>{r.subject||'수업'}</span>
                    </div>
 
                    <div className="summary-content-row">
-                     <b>진도</b>
+                     <b>{tr('진도','Progress')}</b>
                      <p>{r.progress||'작성 없음'}</p>
                    </div>
 
                    <div className="summary-content-row">
-                     <b>숙제</b>
+                     <b>{tr('숙제','Homework')}</b>
                      <p>{r.homework||'작성 없음'}</p>
                    </div>
 
@@ -2267,7 +2327,7 @@ export default function Home(){
      </div>
 
      <div className="modal-actions band-helper-actions">
-       <button className="cancel-button" onClick={()=>setBandModal(false)}>닫기</button>
+       <button className="cancel-button" onClick={()=>setBandModal(false)}>{tr('닫기','Close')}</button>
 
        <div className="band-helper-right">
          <button className="copy-band-button" onClick={copyBandSchedule}>제목 + 진도/숙제 복사</button>
@@ -2346,7 +2406,7 @@ export default function Home(){
        {teacherForm.id&&<button className="reset-button" onClick={deleteTeacher}>선생님 삭제</button>}
 
        <div className="student-edit-right">
-         <button className="cancel-button" onClick={()=>setTeacherModal(false)}>닫기</button>
+         <button className="cancel-button" onClick={()=>setTeacherModal(false)}>{tr('닫기','Close')}</button>
          <button className="save-button" onClick={saveTeacher}>{teacherForm.id?'정보 저장':'선생님 등록'}</button>
        </div>
      </div>
@@ -2392,7 +2452,7 @@ export default function Home(){
            onChange={e=>setClassForm((f:any)=>({...f,primaryTeacherId:e.target.value}))}
          >
            <option value="">미지정</option>
-           {meta.teachers.map(t=><option key={t.id} value={t.id}>{t.teacher_name}</option>)}
+           {meta.teachers.map(t=><option key={t.id} value={t.id}>{teacherDisplayName(t.teacher_name)}</option>)}
          </select>
        </label>
      </div>
@@ -2484,7 +2544,7 @@ export default function Home(){
                    onChange={e=>updateClassScheduleRow(index,'teacher_id',e.target.value)}
                  >
                    <option value="">선생님 미지정</option>
-                   {meta.teachers.map(t=><option key={t.id} value={t.id}>{t.teacher_name}</option>)}
+                   {meta.teachers.map(t=><option key={t.id} value={t.id}>{teacherDisplayName(t.teacher_name)}</option>)}
                  </select>
 
                  <button
@@ -2566,7 +2626,7 @@ export default function Home(){
        {classForm.id&&<button className="reset-button" onClick={deleteClass}>반 삭제</button>}
 
        <div className="student-edit-right">
-         <button className="cancel-button" onClick={()=>setClassModal(false)}>닫기</button>
+         <button className="cancel-button" onClick={()=>setClassModal(false)}>{tr('닫기','Close')}</button>
          <button className="save-button" onClick={saveClass}>{classForm.id?'수정 저장':'반 등록'}</button>
        </div>
      </div>
@@ -2637,7 +2697,7 @@ export default function Home(){
            onChange={e=>setStudentForm((f:any)=>({...f,classId:e.target.value}))}
          >
            <option value="">미배정</option>
-           {meta.classes.map(c=><option key={c.id} value={c.id}>{c.class_name}</option>)}
+           {meta.classes.map(c=><option key={c.id} value={c.id}>{classDisplayName(c.class_name)}</option>)}
          </select>
        </label>
      </div>
@@ -2725,8 +2785,8 @@ export default function Home(){
                     <span>{row.teacher_name||'-'}</span>
                   </div>
                   <div className="student-progress-body">
-                    <div><span>진도</span><strong>{row.progress||'-'}</strong></div>
-                    <div><span>숙제</span><strong>{row.homework||'-'}</strong></div>
+                    <div><span>{tr('진도','Progress')}</span><strong>{row.progress||'-'}</strong></div>
+                    <div><span>{tr('숙제','Homework')}</span><strong>{row.homework||'-'}</strong></div>
                     {row.lesson_memo&&<div className="student-progress-memo"><span>메모</span><strong>{row.lesson_memo}</strong></div>}
                   </div>
                 </article>)
@@ -2739,7 +2799,7 @@ export default function Home(){
      <div className="modal-actions student-edit-actions">
        {studentForm.id&&<button className="reset-button" onClick={deleteStudent}>학생 삭제</button>}
        <div className="student-edit-right">
-         <button className="cancel-button" onClick={()=>{setStudentModal(false);setStudentDetail(null)}}>닫기</button>
+         <button className="cancel-button" onClick={()=>{setStudentModal(false);setStudentDetail(null)}}>{tr('닫기','Close')}</button>
          <button className="save-button" onClick={saveStudent}>{studentForm.id?'수정 저장':'학생 등록'}</button>
        </div>
      </div>
@@ -2747,8 +2807,8 @@ export default function Home(){
  </section>
 </div>}
 
- {selected&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}><section className="lesson-modal"><header className="modal-head"><div><div className="modal-kicker">LESSON MANAGEMENT</div><h2>{selected.classes?.class_name}</h2><div className="modal-sub">{fmt(selected.lessonDate)} · {selected.start_time?.slice(0,5)} ~ {selected.end_time?.slice(0,5)} · {selected.subject} · {room(selected.room)}</div></div><button className="modal-close" onClick={()=>setSelected(null)}>×</button></header>{detailBusy||!detail?<div className="modal-loading">불러오는 중...</div>:<div className="modal-body"><section className="record-grid"><label className="record-field"><span>수업 진도</span><textarea value={detail.record.progress} onChange={e=>updateRecord('progress',e.target.value)}/></label><label className="record-field"><span>숙제</span><textarea value={detail.record.homework} onChange={e=>updateRecord('homework',e.target.value)}/></label></section><label className="record-field memo-field"><span>특이사항</span><textarea value={detail.record.lesson_memo} onChange={e=>updateRecord('lesson_memo',e.target.value)}/></label><section className="attendance-section"><div className="attendance-head"><h3>학생 출결 <small>{detail.students.length}명</small></h3><button className="all-present-button" onClick={allPresent}>전체 출석</button></div><div className="student-list">{detail.students.map((s,i)=><article className="student-row" key={s.id}><div className="student-info"><strong>{s.student_name}</strong><span>{[s.school,s.registered_grade].filter(Boolean).join(' · ')}</span></div><div className="attendance-buttons">{STATUSES.map(st=><button key={st} className={`attendance-button ${s.attendance_status===st?`active ${st}`:''}`} onClick={()=>updateStudent(i,{attendance_status:st})}>{st}</button>)}</div><input className="attendance-memo" value={s.attendance_memo} onChange={e=>updateStudent(i,{attendance_memo:e.target.value})} placeholder="출결 메모"/></article>)}</div></section><div className="modal-actions"><button className="cancel-button" onClick={()=>setSelected(null)}>닫기</button><button className="save-button" disabled={saving} onClick={saveLesson}>{saving?'저장 중...':'저장'}</button></div></div>}</section></div>}
- {adminModal&&<div className="modal-backdrop"><section className="admin-modal"><header className="modal-head"><div><div className="modal-kicker">ADMIN OPERATION</div><h2>{adminModal==='event'?(eventForm.id?'학원 일정 수정':'학원 일정 등록'):adminModal==='makeup'?'보강 수업 추가':'당일 수업 변경'}</h2></div><button className="modal-close" onClick={()=>setAdminModal(null)}>×</button></header><div className="admin-form">{adminModal==='event'?<><label>일정 종류<select value={eventForm.eventType||'기타'} onChange={e=>setEventForm({...eventForm,eventType:e.target.value})}><option>학원방학</option><option>시험집중</option><option>Day-off</option><option>기타</option></select></label><label>제목<input value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label><div className="two"><label>시작일<input type="date" value={eventForm.startDate} onChange={e=>setEventForm({...eventForm,startDate:e.target.value})}/></label><label>종료일<input type="date" value={eventForm.endDate} onChange={e=>setEventForm({...eventForm,endDate:e.target.value})}/></label></div><label>선생님 (Day-off용)<select value={eventForm.teacherId} onChange={e=>setEventForm({...eventForm,teacherId:e.target.value})}><option value="">전체/없음</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={eventForm.memo} onChange={e=>setEventForm({...eventForm,memo:e.target.value})}/></label>{eventForm.id?<div className="admin-actions event-edit-actions"><button className="reset-button" onClick={deleteEvent}>일정 삭제</button><button className="save-button" onClick={saveEvent}>수정 저장</button></div>:<button className="save-button wide" onClick={saveEvent}>일정 저장</button>}</>:<>{adminModal==='makeup'?<><label>보강명 / 학생명<input value={changeForm.title} onChange={e=>setChangeForm({...changeForm,title:e.target.value})} placeholder="예: 김민준 개별보강"/></label><div className="two"><label>날짜<input type="date" value={changeForm.date} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>강의실<select value={changeForm.room} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})} placeholder="예: 문법 보강"/></label>{user.role==='admin'&&<label>담당 선생님<select value={changeForm.teacherId} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}><option value="">선생님 선택</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label>}<label>메모<textarea value={changeForm.memo} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><button className="save-button wide" onClick={saveCustomMakeup}>보강 등록</button></>:<><div className="two"><label>날짜<input type="date" value={changeForm.date} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>상태<select value={changeForm.status||'정상'} onChange={e=>setChangeForm({...changeForm,status:e.target.value})}><option>정상</option><option>휴강</option><option>보강</option></select></label></div><div className="two"><label>시작<input type="time" value={changeForm.startTime} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>종료<input type="time" value={changeForm.endTime} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>과목<input value={changeForm.subject} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})}/></label><label>강의실<select value={changeForm.room} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label><label>선생님<select value={changeForm.teacherId} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}>{meta.teachers.map(t=><option value={t.id} key={t.id}>{t.teacher_name}</option>)}</select></label><label>메모<textarea value={changeForm.memo} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><div className="admin-actions"><button className="reset-button" onClick={resetChange}>기본 시간표 복원</button><button className="save-button" onClick={saveChange}>변경 저장</button></div></>}</>}</div></section></div>}
+ {selected&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}><section className="lesson-modal"><header className="modal-head"><div><div className="modal-kicker">LESSON MANAGEMENT</div><h2>{classDisplayName(selected.classes?.class_name)}</h2><div className="modal-sub">{fmt(selected.lessonDate)} · {selected.start_time?.slice(0,5)} ~ {selected.end_time?.slice(0,5)} · {selected.subject} · {room(selected.room)}</div></div><button className="modal-close" onClick={()=>setSelected(null)}>×</button></header>{detailBusy||!detail?<div className="modal-loading">{tr('불러오는 중...','Loading...')}</div>:<div className="modal-body"><section className="record-grid"><label className="record-field"><span>{tr('수업 진도','Progress')}</span><textarea value={detail.record.progress} onChange={e=>updateRecord('progress',e.target.value)}/></label><label className="record-field"><span>{tr('숙제','Homework')}</span><textarea value={detail.record.homework} onChange={e=>updateRecord('homework',e.target.value)}/></label></section><label className="record-field memo-field"><span>{tr('특이사항','Notes')}</span><textarea value={detail.record.lesson_memo} onChange={e=>updateRecord('lesson_memo',e.target.value)}/></label><section className="attendance-section"><div className="attendance-head"><h3>{tr('학생 출결','Attendance')} <small>{detail.students.length}명</small></h3><button className="all-present-button" onClick={allPresent}>{tr('전체 출석','Mark All Present')}</button></div><div className="student-list">{detail.students.map((s,i)=><article className="student-row" key={s.id}><div className="student-info"><strong>{s.student_name}</strong><span>{[s.school,s.registered_grade].filter(Boolean).join(' · ')}</span></div><div className="attendance-buttons">{STATUSES.map(st=><button key={st} className={`attendance-button ${s.attendance_status===st?`active ${st}`:''}`} onClick={()=>updateStudent(i,{attendance_status:st})}>{statusDisplayName(st)}</button>)}</div><input className="attendance-memo" value={s.attendance_memo} onChange={e=>updateStudent(i,{attendance_memo:e.target.value})} placeholder={tr('출결 메모','Attendance note')}/></article>)}</div></section><div className="modal-actions"><button className="cancel-button" onClick={()=>setSelected(null)}>{tr('닫기','Close')}</button><button className="save-button" disabled={saving} onClick={saveLesson}>{saving?tr('저장 중...','Saving...'):tr('저장','Save')}</button></div></div>}</section></div>}
+ {adminModal&&<div className="modal-backdrop"><section className="admin-modal"><header className="modal-head"><div><div className="modal-kicker">ADMIN OPERATION</div><h2>{adminModal==='event'?(eventForm.id?'학원 일정 수정':'학원 일정 등록'):adminModal==='makeup'?tr('보강 수업 추가','Add Make-up Class'):'당일 수업 변경'}</h2></div><button className="modal-close" onClick={()=>setAdminModal(null)}>×</button></header><div className="admin-form">{adminModal==='event'?<><label>일정 종류<select value={eventForm.eventType||'기타'} onChange={e=>setEventForm({...eventForm,eventType:e.target.value})}><option>학원방학</option><option>시험집중</option><option>Day-off</option><option>기타</option></select></label><label>제목<input value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label><div className="two"><label>{tr('시작','Start')}일<input type="date" value={eventForm.startDate} onChange={e=>setEventForm({...eventForm,startDate:e.target.value})}/></label><label>{tr('종료','End')}일<input type="date" value={eventForm.endDate} onChange={e=>setEventForm({...eventForm,endDate:e.target.value})}/></label></div><label>선생님 (Day-off용)<select value={eventForm.teacherId} onChange={e=>setEventForm({...eventForm,teacherId:e.target.value})}><option value="">전체/없음</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{teacherDisplayName(t.teacher_name)}</option>)}</select></label><label>{tr('메모','Memo')}<textarea value={eventForm.memo} onChange={e=>setEventForm({...eventForm,memo:e.target.value})}/></label>{eventForm.id?<div className="admin-actions event-edit-actions"><button className="reset-button" onClick={deleteEvent}>일정 삭제</button><button className="save-button" onClick={saveEvent}>수정 저장</button></div>:<button className="save-button wide" onClick={saveEvent}>일정 저장</button>}</>:<>{adminModal==='makeup'?<><label>{tr('보강명 / 학생명','Make-up / Student')}<input value={changeForm.title} onChange={e=>setChangeForm({...changeForm,title:e.target.value})} placeholder={tr('예: 김민준 개별보강','e.g. Kim Minjun make-up')}/></label><div className="two"><label>{tr('날짜','Date')}<input type="date" value={changeForm.date} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>{tr('강의실','Room')}<select value={changeForm.room} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label></div><div className="two"><label>{tr('시작','Start')}<input type="time" value={changeForm.startTime} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>{tr('종료','End')}<input type="time" value={changeForm.endTime} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>{tr('과목','Subject')}<input value={changeForm.subject} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})} placeholder={tr('예: 문법 보강','e.g. Grammar make-up')}/></label>{user.role==='admin'&&<label>{tr('담당 선생님','Teacher')}<select value={changeForm.teacherId} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}><option value="">{tr('선생님 선택','Select Teacher')}</option>{meta.teachers.map(t=><option value={t.id} key={t.id}>{teacherDisplayName(t.teacher_name)}</option>)}</select></label>}<label>{tr('메모','Memo')}<textarea value={changeForm.memo} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><button className="save-button wide" onClick={saveCustomMakeup}>{tr('보강 등록','Add Make-up')}</button></>:<><div className="two"><label>{tr('날짜','Date')}<input type="date" value={changeForm.date} onChange={e=>setChangeForm({...changeForm,date:e.target.value})}/></label><label>상태<select value={changeForm.status||'정상'} onChange={e=>setChangeForm({...changeForm,status:e.target.value})}><option>정상</option><option>휴강</option><option>보강</option></select></label></div><div className="two"><label>{tr('시작','Start')}<input type="time" value={changeForm.startTime} onChange={e=>setChangeForm({...changeForm,startTime:e.target.value})}/></label><label>{tr('종료','End')}<input type="time" value={changeForm.endTime} onChange={e=>setChangeForm({...changeForm,endTime:e.target.value})}/></label></div><label>{tr('과목','Subject')}<input value={changeForm.subject} onChange={e=>setChangeForm({...changeForm,subject:e.target.value})}/></label><label>{tr('강의실','Room')}<select value={changeForm.room} onChange={e=>setChangeForm({...changeForm,room:e.target.value})}>{ROOMS.map(r=><option key={r}>{r}</option>)}</select></label><label>선생님<select value={changeForm.teacherId} onChange={e=>setChangeForm({...changeForm,teacherId:e.target.value})}>{meta.teachers.map(t=><option value={t.id} key={t.id}>{teacherDisplayName(t.teacher_name)}</option>)}</select></label><label>{tr('메모','Memo')}<textarea value={changeForm.memo} onChange={e=>setChangeForm({...changeForm,memo:e.target.value})}/></label><div className="admin-actions"><button className="reset-button" onClick={resetChange}>기본 시간표 복원</button><button className="save-button" onClick={saveChange}>변경 저장</button></div></>}</>}</div></section></div>}
  {toast&&<div className="toast">{toast}</div>}
  </>;
 }
