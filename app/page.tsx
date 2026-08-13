@@ -63,6 +63,7 @@ const add=(d:string,n:number)=>{
 const TT_START=13*60;
 const TT_END=20*60;
 const TT_PX_PER_MIN=1;
+const DAY_GRID_PX_PER_MIN=1.65;
 const toMinutes=(v:string)=>{
   const [h,m]=String(v||"00:00").slice(0,5).split(":").map(Number);
   return h*60+m;
@@ -325,6 +326,12 @@ export default function Home(){
  function openDayGridDate(target:string){
    setDayGridDate(target);
  }
+
+ function printDayGrid(){
+   if(typeof window==='undefined')return;
+   window.print();
+ }
+
 
  const filteredAdminStudents=useMemo(()=>{
    const q=studentSearch.trim().toLowerCase();
@@ -2248,6 +2255,7 @@ if(cleanedDays.length&&!dayGridDate){
        <button onClick={()=>loadWeek(add(weekBase,-7))}>← 지난주</button>
        <button onClick={()=>loadWeek(date)}>이번주</button>
        <button onClick={()=>loadWeek(add(weekBase,7))}>다음주 →</button>
+       <button className="day-grid-print-button" onClick={printDayGrid}>🖨 프린트</button>
      </div>
    </div>
 
@@ -2283,13 +2291,13 @@ if(cleanedDays.length&&!dayGridDate){
 
          <div
            className="day-grid-time-axis"
-           style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
+           style={{height:(TT_END-TT_START)*DAY_GRID_PX_PER_MIN}}
          >
            {TT_HOURS.map(hour=>(
              <div
                className="day-grid-time-label"
                key={hour}
-               style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+               style={{top:(hour*60-TT_START)*DAY_GRID_PX_PER_MIN}}
              >
                {String(hour).padStart(2,'0')}:00
              </div>
@@ -2300,13 +2308,13 @@ if(cleanedDays.length&&!dayGridDate){
            <div
              className="day-grid-room-column"
              key={g.room}
-             style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
+             style={{height:(TT_END-TT_START)*DAY_GRID_PX_PER_MIN}}
            >
              {TT_HOURS.map(hour=>(
                <div
                  className="day-grid-hour-line"
                  key={`${g.room}_${hour}`}
-                 style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+                 style={{top:(hour*60-TT_START)*DAY_GRID_PX_PER_MIN}}
                />
              ))}
 
@@ -2316,8 +2324,8 @@ if(cleanedDays.length&&!dayGridDate){
                  key={`${l.schedule_code}_${l.lessonDate}`}
                  className={`day-grid-lesson ${statusClass(l)}`}
                  style={{
-                   top:ttTop(l.start_time),
-                   height:ttHeight(l.start_time,l.end_time)
+                   top:Math.max(0,(toMinutes(l.start_time)-TT_START)*DAY_GRID_PX_PER_MIN),
+                   height:Math.max(54,(toMinutes(l.end_time)-toMinutes(l.start_time))*DAY_GRID_PX_PER_MIN)
                  }}
                  onClick={()=>openAdminLesson(l)}
                  onContextMenu={e=>{
@@ -2327,10 +2335,14 @@ if(cleanedDays.length&&!dayGridDate){
                    }
                  }}
                >
-                 <strong>{l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}</strong>
-                 <b>{classDisplayName(l.classes?.class_name)}</b>
-                 <span>{l.subject}</span>
-                 <small>{teacherDisplayName(l.teachers?.teacher_name)}</small>
+                 <div className="day-grid-class-teacher">
+                   <b>{classDisplayName(l.classes?.class_name)}</b>
+                   <span>-</span>
+                   <b>{teacherDisplayName(l.teachers?.teacher_name)}</b>
+                 </div>
+                 <strong className="day-grid-card-time">
+                   {l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}
+                 </strong>
                </button>
              ))}
            </div>
