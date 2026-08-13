@@ -1511,9 +1511,77 @@ export default function Home(){
  }
 
  async function logout(){await fetch('/api/logout',{method:'POST'});setUser(null);setLessons([]);setWeekDays([]);setSelected(null);setAccessibleClasses([]);setClassWeekData(null);setClassWeekClassId('');setWorkData(null)}
- async function openLesson(l:Lesson){if(l.isCustomMakeup){setToast(`${l.classes?.class_name||'보강'} · ${l.start_time?.slice(0,5)} 보강 수업`);return}if(l.operationStatus==='학원방학'||l.operationStatus==='휴강'){if(user?.role==='admin')openChange(l);else setToast(l.operationStatus==='휴강'?'휴강된 수업입니다.':'학원방학입니다.');return}setSelected(l);setDetail(null);setDetailBusy(true);try{const r=await fetch(`/api/lesson/${encodeURIComponent(l.schedule_code)}?date=${l.lessonDate}`,{cache:'no-store'});const j=await r.json();if(!r.ok){setToast(j.message);setSelected(null);return}setDetail(j)}finally{setDetailBusy(false)}}
+ async function openLesson(l:Lesson){
+  if(l.operationStatus==='학원방학'||l.operationStatus==='휴강'){
+   if(user?.role==='admin'&&!l.isCustomMakeup)openChange(l);
+   else setToast(l.operationStatus==='휴강'?'휴강된 수업입니다.':'학원방학입니다.');
+   return;
+  }
+
+  setSelected(l);
+  setDetail(null);
+  setDetailBusy(true);
+
+  try{
+   const endpoint=l.isCustomMakeup&&l.makeupId
+    ?`/api/makeup/${encodeURIComponent(l.makeupId)}?date=${encodeURIComponent(l.lessonDate)}`
+    :`/api/lesson/${encodeURIComponent(l.schedule_code)}?date=${encodeURIComponent(l.lessonDate)}`;
+
+   const r=await fetch(endpoint,{cache:'no-store'});
+   const j=await r.json();
+
+   if(!r.ok){
+    setToast(j.message||'수업 정보를 불러오지 못했습니다.');
+    setSelected(null);
+    return;
+   }
+
+   setDetail(j);
+  }finally{
+   setDetailBusy(false);
+  }
+ }
  function updateRecord(k:string,v:string){setDetail((d:any)=>d?({...d,record:{...d.record,[k]:v}}):d)} function updateStudent(i:number,p:any){setDetail((d:any)=>{if(!d)return d;const s=[...d.students];s[i]={...s[i],...p};return{...d,students:s}})} function allPresent(){setDetail((d:any)=>d?({...d,students:d.students.map((s:any)=>({...s,attendance_status:'출석'}))}):d)}
- async function saveLesson(){if(!selected||!detail)return;setSaving(true);try{const r=await fetch(`/api/lesson/${encodeURIComponent(selected.schedule_code)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lessonDate:detail.date,progress:detail.record.progress,homework:detail.record.homework,lessonMemo:detail.record.lesson_memo,students:detail.students})});const j=await r.json();if(!r.ok){setToast(j.message);return}setToast('저장되었습니다.');setSelected(null);view==='daily'?await loadToday():view==='work'?await loadWork():view==='weekly'?await loadWeek(weekBase):await loadClassWeek(weekBase)}finally{setSaving(false)}}
+ async function saveLesson(){
+  if(!selected||!detail)return;
+
+  setSaving(true);
+
+  try{
+   const endpoint=selected.isCustomMakeup&&selected.makeupId
+    ?`/api/makeup/${encodeURIComponent(selected.makeupId)}`
+    :`/api/lesson/${encodeURIComponent(selected.schedule_code)}`;
+
+   const r=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+     lessonDate:detail.date,
+     progress:detail.record.progress,
+     homework:detail.record.homework,
+     lessonMemo:detail.record.lesson_memo,
+     students:detail.students
+    })
+   });
+
+   const j=await r.json();
+
+   if(!r.ok){
+    setToast(j.message||'저장에 실패했습니다.');
+    return;
+   }
+
+   setToast(selected.isCustomMakeup?'추가수업 진도·숙제를 저장했습니다.':'저장되었습니다.');
+   setSelected(null);
+
+   if(view==='daily')await loadToday();
+   else if(view==='work')await loadWork();
+   else if(view==='weekly')await loadWeek(weekBase);
+   else await loadClassWeek(weekBase);
+  }finally{
+   setSaving(false);
+  }
+ }
  function openChange(l:Lesson){setChangeForm({scheduleId:l.id,date:l.lessonDate,status:l.operationStatus==='휴강'?'휴강':'정상',startTime:l.start_time?.slice(0,5),endTime:l.end_time?.slice(0,5),subject:l.subject,room:room(l.room),teacherId:l.teacher_id,memo:l.operationMemo});setAdminModal('change')}
  function openAdminLesson(l:Lesson){
   const isMobile=
@@ -1645,6 +1713,10 @@ export default function Home(){
   if(user?.role==='admin'&&!payload.teacherId){
    setToast('담당 선생님을 선택해주세요.');
    return;
+  }
+
+  if(changeForm.replacementClassId){
+   payload.classId=changeForm.replacementClassId;
   }
 
   delete payload.addLessonMode;

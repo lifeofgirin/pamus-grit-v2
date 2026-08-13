@@ -61,6 +61,11 @@ export async function POST(
       );
     }
 
+    const classId =
+      String(
+        body?.classId || ""
+      ).trim() || null;
+
     let teacherId =
       session.teacherId;
 
@@ -119,6 +124,9 @@ export async function POST(
 
           teacher_id:
             teacherId,
+
+          class_id:
+            classId,
 
           memo:
             String(

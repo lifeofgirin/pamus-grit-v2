@@ -282,8 +282,13 @@ export async function GET(
             subject,
             room,
             teacher_id,
+            class_id,
             memo,
             created_by_role,
+            classes (
+              class_code,
+              class_name
+            ),
             teachers (
               teacher_code,
               teacher_name
@@ -493,6 +498,7 @@ export async function GET(
                   `MAKEUP_${makeup.id}`,
 
                 class_id:
+                  makeup.class_id ||
                   null,
 
                 day_of_week:
@@ -517,13 +523,14 @@ export async function GET(
                 teachers:
                   makeup.teachers,
 
-                classes: {
-                  class_code:
-                    "MAKEUP",
+                classes:
+                  makeup.classes || {
+                    class_code:
+                      "MAKEUP",
 
-                  class_name:
-                    makeup.title,
-                },
+                    class_name:
+                      makeup.title,
+                  },
 
                 lessonDate:
                   day.date,
