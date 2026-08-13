@@ -5191,3 +5191,252 @@ body {
     justify-content: center !important;
   }
 }
+
+
+/* =========================================
+   v18.3.7 관리자 요일별 강의실 타임테이블
+========================================= */
+.day-grid-panel {
+  overflow: hidden;
+}
+
+.day-grid-head {
+  gap: 12px;
+}
+
+.day-grid-week-nav {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.day-grid-week-nav button,
+.day-grid-day-tabs button {
+  border: 1px solid #dde5f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #617087;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.day-grid-week-nav button {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+
+.day-grid-day-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.day-grid-day-tabs button {
+  min-height: 53px;
+  padding: 7px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.day-grid-day-tabs button strong {
+  font-size: 13px;
+}
+
+.day-grid-day-tabs button span {
+  font-size: 9px;
+  color: #8a97aa;
+}
+
+.day-grid-day-tabs button.active {
+  border-color: #315bd6;
+  background: #eef3ff;
+  color: #315bd6;
+}
+
+.day-grid-events {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+
+.day-grid-events span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f4f6f9;
+  color: #67758a;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.day-grid-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.day-grid-table {
+  min-width: 1180px;
+  display: grid;
+  grid-template-columns: 74px repeat(8, minmax(128px, 1fr));
+  grid-template-rows: 45px auto;
+  border: 1px solid #e2e8f1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.day-grid-time-head,
+.day-grid-room-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f9fc;
+  border-right: 1px solid #e2e8f1;
+  border-bottom: 1px solid #e2e8f1;
+  color: #48566c;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.day-grid-room-head:last-of-type {
+  border-right: 0;
+}
+
+.day-grid-time-axis,
+.day-grid-room-column {
+  position: relative;
+  min-height: 420px;
+  border-right: 1px solid #e4e9f0;
+  background: #fff;
+}
+
+.day-grid-room-column:last-child {
+  border-right: 0;
+}
+
+.day-grid-time-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding-right: 9px;
+  text-align: right;
+  color: #8a96a8;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.day-grid-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #edf0f5;
+  pointer-events: none;
+}
+
+.day-grid-lesson {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  z-index: 2;
+  min-height: 36px;
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  overflow: hidden;
+  border: 1px solid #ccd9ff;
+  border-radius: 8px;
+  background: #edf3ff;
+  color: #2d426f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-grid-lesson strong {
+  font-size: 9px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.day-grid-lesson b {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-grid-lesson span {
+  max-width: 100%;
+  overflow: hidden;
+  color: #647392;
+  font-size: 8px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-grid-lesson small {
+  max-width: 100%;
+  overflow: hidden;
+  color: #5067aa;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-grid-lesson.makeup {
+  border-color: #b8e6c9;
+  background: #edf9f1;
+  color: #33714b;
+}
+
+.day-grid-lesson.vacation {
+  opacity: .5;
+}
+
+@media(max-width:650px){
+  .day-grid-head {
+    align-items: stretch !important;
+  }
+
+  .day-grid-week-nav {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+  }
+
+  .day-grid-week-nav button {
+    padding: 0 5px;
+    font-size: 9px;
+  }
+
+  .day-grid-day-tabs {
+    gap: 4px;
+  }
+
+  .day-grid-day-tabs button {
+    min-height: 48px;
+    padding: 5px 2px;
+  }
+
+  .day-grid-day-tabs button strong {
+    font-size: 12px;
+  }
+
+  .day-grid-table {
+    min-width: 1090px;
+    grid-template-columns: 66px repeat(8, 128px);
+  }
+}

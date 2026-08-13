@@ -183,6 +183,8 @@ export async function GET(request: Request) {
       schedulesResult,
       changesResult,
       recordsResult,
+      makeupsResult,
+      makeupRecordsResult,
     ] = await Promise.all([
       supabase
         .from("classes")
@@ -242,11 +244,54 @@ export async function GET(request: Request) {
         data: [],
         error: null,
       }),
+
+      supabase
+        .from("makeup_lessons")
+        .select(`
+          id,
+          makeup_date,
+          title,
+          start_time,
+          end_time,
+          subject,
+          room,
+          teacher_id,
+          class_id,
+          memo,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .eq("class_id",classId)
+        .gte("makeup_date",weekStart)
+        .lte("makeup_date",weekEnd),
+
+      supabase
+        .from("makeup_lesson_records")
+        .select(`
+          makeup_lesson_id,
+          class_id,
+          lesson_date,
+          teacher_id,
+          progress,
+          homework,
+          lesson_memo,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .eq("class_id",classId)
+        .gte("lesson_date",weekStart)
+        .lte("lesson_date",weekEnd),
     ]);
 
     if (classResult.error) throw classResult.error;
     if (schedulesResult.error) throw schedulesResult.error;
     if (changesResult.error) throw changesResult.error;
+    if (makeupsResult.error) throw makeupsResult.error;
+    if (makeupRecordsResult.error) throw makeupRecordsResult.error;
 
     if (!classResult.data) {
       return NextResponse.json(
@@ -257,6 +302,8 @@ export async function GET(request: Request) {
 
     const schedules = schedulesResult.data || [];
     const changes = changesResult.data || [];
+    const makeups = makeupsResult.data || [];
+    const makeupRecords = makeupRecordsResult.data || [];
 
     /*
      * v7.1:
@@ -373,6 +420,26 @@ export async function GET(request: Request) {
               change?.memo || "",
           };
         })
+        .concat(
+          makeups
+            .filter((makeup:any)=>makeup.makeup_date===day.date)
+            .map((makeup:any)=>({
+              id:`makeup_${makeup.id}`,
+              makeupId:makeup.id,
+              schedule_code:`MAKEUP_${makeup.id}`,
+              class_id:makeup.class_id,
+              lessonDate:day.date,
+              start_time:makeup.start_time,
+              end_time:makeup.end_time,
+              subject:makeup.subject||"추가수업",
+              room:makeup.room,
+              teacher_id:makeup.teacher_id,
+              teachers:makeup.teachers,
+              operationStatus:"보강",
+              operationMemo:makeup.memo||"",
+              isCustomMakeup:true
+            }))
+        )
         .sort((a: any, b: any) =>
           String(a.start_time).localeCompare(
             String(b.start_time)
@@ -412,6 +479,43 @@ export async function GET(request: Request) {
           record.lesson_memo || "",
       };
     });
+
+    const makeupMap = new Map(
+      makeups.map((makeup:any)=>[makeup.id,makeup])
+    );
+
+    summaryRecords.push(
+      ...makeupRecords.map((record:any)=>{
+        const makeup:any=
+          makeupMap.get(record.makeup_lesson_id);
+
+        return {
+          schedule_id:`makeup_${record.makeup_lesson_id}`,
+          lesson_date:record.lesson_date,
+
+          teacher_name:
+            record.teachers?.teacher_name ||
+            makeup?.teachers?.teacher_name ||
+            "선생님 미지정",
+
+          subject:
+            makeup?.subject || "추가수업",
+
+          progress:
+            record.progress || "",
+
+          homework:
+            record.homework || "",
+
+          lesson_memo:
+            record.lesson_memo || "",
+        };
+      })
+    );
+
+    summaryRecords.sort((a:any,b:any)=>
+      String(a.lesson_date).localeCompare(String(b.lesson_date))
+    );
 
     return NextResponse.json({
       ok: true,

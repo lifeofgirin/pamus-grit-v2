@@ -95,8 +95,13 @@ export async function getLessonsForDate(
         subject,
         room,
         teacher_id,
+        class_id,
         memo,
         created_by_role,
+        classes (
+          class_code,
+          class_name
+        ),
         teachers (
           teacher_code,
           teacher_name
@@ -196,7 +201,8 @@ export async function getLessonsForDate(
       makeupId: makeup.id,
       schedule_code:
         `MAKEUP_${makeup.id}`,
-      class_id: null,
+      class_id:
+        makeup.class_id || null,
       day_of_week: dayOfWeek,
 
       start_time: makeup.start_time,
@@ -213,10 +219,11 @@ export async function getLessonsForDate(
       teachers:
         makeup.teachers,
 
-      classes: {
-        class_code: "MAKEUP",
-        class_name: makeup.title,
-      },
+      classes:
+        makeup.classes || {
+          class_code: "MAKEUP",
+          class_name: makeup.title,
+        },
 
       lessonDate: date,
 
