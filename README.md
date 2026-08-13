@@ -1,16 +1,9 @@
-# Pamus Grit v2 - v18.3.9
+# Pamus Grit v2 - v18.3.9.1
 
-## 수정 1: 선생님 개별 주간 시간표 프린트 복구
-- 관리자뿐 아니라 선생님 계정에서도 주간 화면에 A4 인쇄 버튼 표시
-- 월~금 출력 요일 선택 유지
-- 영어 UI에서는 A4 Print 표시
+Vercel build 오류 수정:
+- layout.tsx의 `./components/PwaRegister` import 제거
+- PWA service worker 등록을 `next/script`로 layout.tsx 내부 처리
+- app/components/PwaRegister.tsx 의존성 제거
 
-## 수정 2: 보강/당일 추가수업 반별 시간표 복구
-- v18.3.6 이후 수업: makeup_lessons.class_id 기준으로 반별 시간표에 표시
-- v18.3.6 이전 기존 보강 중 class_id가 비어 있는 데이터:
-  보강 title이 반 이름과 같으면 해당 반 시간표에 자동 포함
-- 추가수업 진도/숙제 기록도 makeup_lesson_records에서 함께 표시
-- 반별 시간표의 추가수업 카드도 클릭하여 작성창 열기 가능
-
+기능 변경 없음.
 SQL 추가 없음.
-단, 추가수업 진도/숙제 기능을 사용하려면 기존 v18.3.6 SQL은 실행되어 있어야 합니다.

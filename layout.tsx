@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import PwaRegister from "./components/PwaRegister";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "PAMUS GRIT",
@@ -33,7 +33,21 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <PwaRegister />{children}</body>
+        {children}
+        <Script id="pwa-register" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function () {
+                navigator.serviceWorker
+                  .register('/sw.js', { scope: '/' })
+                  .catch(function (error) {
+                    console.error('PWA service worker registration failed:', error);
+                  });
+              }, { once: true });
+            }
+          `}
+        </Script>
+      </body>
     </html>
   );
 }

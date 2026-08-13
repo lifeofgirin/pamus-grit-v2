@@ -1,35 +1,69 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getKoreaDate } from "@/lib/korea-time";
 
-export async function GET(){
- const s=await getCurrentSession();
- if(!s||s.role!=="admin") return NextResponse.json({ok:false},{status:403});
+export async function PUT(req:Request){
+  const session=await getCurrentSession();
 
- const db=getSupabaseAdmin();
- const today=getKoreaDate().date;
+  if(!session||session.role!=="admin"){
+    return NextResponse.json(
+      {ok:false,message:"관리자 전용입니다."},
+      {status:403}
+    );
+  }
 
- const [teachers,classes,schedules]=await Promise.all([
-  db.from("teachers")
-    .select("id,teacher_code,teacher_name")
-    .eq("is_active",true)
-    .order("teacher_code"),
-  db.from("classes")
-    .select("id,class_code,class_name")
-    .order("class_code"),
-  db.from("schedules")
-    .select("id,schedule_code,class_id,start_time,end_time,subject,room,teacher_id,day_of_week,valid_from,valid_to,classes(class_name),teachers(teacher_name)")
-    .eq("is_active",true)
-    .lte("valid_from",today)
-    .or(`valid_to.is.null,valid_to.gte.${today}`)
-    .order("schedule_code")
- ]);
+  const body=await req.json();
+  const teacherId=String(body.teacherId||"").trim();
+  const pin=String(body.pin||"").trim();
 
- return NextResponse.json({
-  ok:true,
-  teachers:teachers.data||[],
-  classes:classes.data||[],
-  schedules:schedules.data||[]
- });
+  if(!teacherId){
+    return NextResponse.json(
+      {ok:false,message:"선생님 정보가 없습니다."},
+      {status:400}
+    );
+  }
+
+  if(!/^\d{4,8}$/.test(pin)){
+    return NextResponse.json(
+      {ok:false,message:"PIN은 숫자 4~8자리로 입력해주세요."},
+      {status:400}
+    );
+  }
+
+  const db=getSupabaseAdmin();
+
+  const {data:teacher,error:teacherError}=await db
+    .from("teachers")
+    .select("id,teacher_code,teacher_name,is_active")
+    .eq("id",teacherId)
+    .single();
+
+  if(teacherError||!teacher){
+    return NextResponse.json(
+      {ok:false,message:"선생님을 찾을 수 없습니다."},
+      {status:404}
+    );
+  }
+
+  const {error}=await db.rpc(
+    "set_teacher_login_pin",
+    {
+      input_teacher_id:teacher.id,
+      input_teacher_code:teacher.teacher_code,
+      input_display_name:teacher.teacher_name,
+      input_pin:pin,
+      input_is_active:teacher.is_active!==false
+    }
+  );
+
+  if(error){
+    console.error("teacher pin reset:",error);
+
+    return NextResponse.json(
+      {ok:false,message:"PIN 재설정에 실패했습니다. 12차 DB SQL을 확인해주세요."},
+      {status:500}
+    );
+  }
+
+  return NextResponse.json({ok:true});
 }
