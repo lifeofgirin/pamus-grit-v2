@@ -11,13 +11,15 @@ function text(v:any){
   return String(v??"").trim();
 }
 
-function nullable(v:any){
-  const value=text(v);
-  return value||null;
-}
+function makeTeacherCode(existing:string[]){
+  const nums=existing
+    .map(code=>/^T(\d+)$/.exec(code))
+    .filter(Boolean)
+    .map(match=>Number((match as RegExpExecArray)[1]))
+    .filter(Number.isFinite);
 
-function makeClassCode(){
-  return `C${Date.now().toString().slice(-9)}`;
+  const next=(nums.length?Math.max(...nums):0)+1;
+  return `T${String(next).padStart(3,"0")}`;
 }
 
 export async function GET(){
@@ -32,54 +34,78 @@ export async function GET(){
 
   const db=getSupabaseAdmin();
 
-  const [{data:classes,error:classError},{data:students,error:studentError}]=await Promise.all([
+  const [
+    {data:teachers,error:teacherError},
+    {data:schedules,error:scheduleError},
+    {data:classes,error:classError},
+    {data:credentials,error:credentialError}
+  ]=await Promise.all([
+    db
+      .from("teachers")
+      .select("id,teacher_code,teacher_name,is_active")
+      .order("teacher_code",{ascending:true}),
+    db
+      .from("schedules")
+      .select("id,teacher_id")
+      .eq("is_active",true),
     db
       .from("classes")
-      .select(`
-        id,
-        class_code,
-        class_name,
-        primary_teacher_id,
-        teachers:primary_teacher_id (
-          teacher_name
-        )
-      `)
-      .order("class_name",{ascending:true}),
+      .select("id,primary_teacher_id"),
     db
-      .from("students")
-      .select(`
-        id,
-        student_name,
-        school,
-        registered_grade,
-        class_id
-      `)
-      .order("student_name",{ascending:true})
+      .from("login_credentials")
+      .select("teacher_id,is_active")
+      .eq("role","teacher")
   ]);
 
-  if(classError||studentError){
-    console.error("admin classes:",classError,studentError);
+  if(teacherError||scheduleError||classError||credentialError){
+    console.error(
+      "admin teachers:",
+      teacherError,
+      scheduleError,
+      classError,
+      credentialError
+    );
 
     return NextResponse.json(
-      {ok:false,message:"반관리 데이터를 불러오지 못했습니다. DB SQL 적용 여부를 확인해주세요."},
+      {ok:false,message:"선생님관리 데이터를 불러오지 못했습니다."},
       {status:500}
     );
   }
 
-  const counts=new Map<string,number>();
+  const scheduleCounts=new Map<string,number>();
+  const primaryClassCounts=new Map<string,number>();
+  const loginMap=new Map<string,boolean>();
 
-  (students||[]).forEach((student:any)=>{
-    if(!student.class_id)return;
-    counts.set(student.class_id,(counts.get(student.class_id)||0)+1);
+  (schedules||[]).forEach((row:any)=>{
+    if(!row.teacher_id)return;
+    scheduleCounts.set(
+      row.teacher_id,
+      (scheduleCounts.get(row.teacher_id)||0)+1
+    );
+  });
+
+  (classes||[]).forEach((row:any)=>{
+    if(!row.primary_teacher_id)return;
+    primaryClassCounts.set(
+      row.primary_teacher_id,
+      (primaryClassCounts.get(row.primary_teacher_id)||0)+1
+    );
+  });
+
+  (credentials||[]).forEach((row:any)=>{
+    if(!row.teacher_id)return;
+    loginMap.set(row.teacher_id,Boolean(row.is_active));
   });
 
   return NextResponse.json({
     ok:true,
-    classes:(classes||[]).map((row:any)=>({
-      ...row,
-      student_count:counts.get(row.id)||0
-    })),
-    students:students||[]
+    teachers:(teachers||[]).map((teacher:any)=>({
+      ...teacher,
+      schedule_count:scheduleCounts.get(teacher.id)||0,
+      primary_class_count:primaryClassCounts.get(teacher.id)||0,
+      has_login:loginMap.has(teacher.id),
+      login_active:loginMap.get(teacher.id)??false
+    }))
   });
 }
 
@@ -94,37 +120,90 @@ export async function POST(req:Request){
   }
 
   const body=await req.json();
-  const className=text(body.className);
+  const teacherName=text(body.teacherName);
+  const pin=text(body.pin);
 
-  if(!className){
+  if(!teacherName){
     return NextResponse.json(
-      {ok:false,message:"반 이름을 입력해주세요."},
+      {ok:false,message:"선생님 이름을 입력해주세요."},
+      {status:400}
+    );
+  }
+
+  if(!/^\d{4,8}$/.test(pin)){
+    return NextResponse.json(
+      {ok:false,message:"PIN은 숫자 4~8자리로 입력해주세요."},
       {status:400}
     );
   }
 
   const db=getSupabaseAdmin();
 
-  const row={
-    class_code:text(body.classCode)||makeClassCode(),
-    class_name:className,
-    primary_teacher_id:nullable(body.primaryTeacherId)
-  };
+  const {data:existing,error:existingError}=await db
+    .from("teachers")
+    .select("teacher_code");
 
-  const {error}=await db
-    .from("classes")
-    .insert(row);
-
-  if(error){
-    console.error("class insert:",error);
-
+  if(existingError){
     return NextResponse.json(
-      {ok:false,message:"반 등록에 실패했습니다. 반 코드 중복 여부를 확인해주세요."},
+      {ok:false,message:"선생님 코드를 생성하지 못했습니다."},
       {status:500}
     );
   }
 
-  return NextResponse.json({ok:true});
+  const teacherCode=
+    text(body.teacherCode)||
+    makeTeacherCode(
+      (existing||[]).map((row:any)=>String(row.teacher_code||""))
+    );
+
+  const {data:teacher,error:insertError}=await db
+    .from("teachers")
+    .insert({
+      teacher_code:teacherCode,
+      teacher_name:teacherName,
+      is_active:true
+    })
+    .select("id,teacher_code,teacher_name,is_active")
+    .single();
+
+  if(insertError||!teacher){
+    console.error("teacher insert:",insertError);
+
+    return NextResponse.json(
+      {ok:false,message:"선생님 등록에 실패했습니다. 선생님 코드 중복 여부를 확인해주세요."},
+      {status:500}
+    );
+  }
+
+  const {error:pinError}=await db.rpc(
+    "set_teacher_login_pin",
+    {
+      input_teacher_id:teacher.id,
+      input_teacher_code:teacher.teacher_code,
+      input_display_name:teacher.teacher_name,
+      input_pin:pin,
+      input_is_active:true
+    }
+  );
+
+  if(pinError){
+    console.error("teacher pin create:",pinError);
+
+    await db
+      .from("teachers")
+      .delete()
+      .eq("id",teacher.id);
+
+    return NextResponse.json(
+      {ok:false,message:"PIN 생성에 실패했습니다. 12차 DB SQL을 먼저 실행해주세요."},
+      {status:500}
+    );
+  }
+
+  return NextResponse.json({
+    ok:true,
+    teacher
+  });
 }
 
 export async function PUT(req:Request){
@@ -139,32 +218,52 @@ export async function PUT(req:Request){
 
   const body=await req.json();
   const id=text(body.id);
-  const className=text(body.className);
+  const teacherName=text(body.teacherName);
+  const teacherCode=text(body.teacherCode);
+  const isActive=body.isActive!==false;
 
-  if(!id||!className){
+  if(!id||!teacherName||!teacherCode){
     return NextResponse.json(
-      {ok:false,message:"반 정보를 확인해주세요."},
+      {ok:false,message:"선생님 정보를 확인해주세요."},
       {status:400}
     );
   }
 
   const db=getSupabaseAdmin();
 
-  const row={
-    class_name:className,
-    primary_teacher_id:nullable(body.primaryTeacherId)
-  };
-
-  const {error}=await db
-    .from("classes")
-    .update(row)
+  const {error:updateError}=await db
+    .from("teachers")
+    .update({
+      teacher_code:teacherCode,
+      teacher_name:teacherName,
+      is_active:isActive
+    })
     .eq("id",id);
 
-  if(error){
-    console.error("class update:",error);
+  if(updateError){
+    console.error("teacher update:",updateError);
 
     return NextResponse.json(
-      {ok:false,message:"반 수정에 실패했습니다."},
+      {ok:false,message:"선생님 정보 수정에 실패했습니다."},
+      {status:500}
+    );
+  }
+
+  const {error:syncError}=await db.rpc(
+    "sync_teacher_login_profile",
+    {
+      input_teacher_id:id,
+      input_teacher_code:teacherCode,
+      input_display_name:teacherName,
+      input_is_active:isActive
+    }
+  );
+
+  if(syncError){
+    console.error("teacher login sync:",syncError);
+
+    return NextResponse.json(
+      {ok:false,message:"선생님 정보는 수정됐지만 로그인 정보 동기화에 실패했습니다. 12차 DB SQL을 확인해주세요."},
       {status:500}
     );
   }
@@ -187,44 +286,56 @@ export async function DELETE(req:Request){
 
   if(!id){
     return NextResponse.json(
-      {ok:false,message:"삭제할 반이 없습니다."},
+      {ok:false,message:"삭제할 선생님이 없습니다."},
       {status:400}
     );
   }
 
   const db=getSupabaseAdmin();
 
-  const [{count:studentCount},{count:scheduleCount}]=await Promise.all([
-    db
-      .from("students")
-      .select("id",{count:"exact",head:true})
-      .eq("class_id",id),
+  const [
+    {count:scheduleCount},
+    {count:classCount},
+    {count:makeupCount}
+  ]=await Promise.all([
     db
       .from("schedules")
       .select("id",{count:"exact",head:true})
-      .eq("class_id",id)
+      .eq("teacher_id",id),
+    db
+      .from("classes")
+      .select("id",{count:"exact",head:true})
+      .eq("primary_teacher_id",id),
+    db
+      .from("makeup_lessons")
+      .select("id",{count:"exact",head:true})
+      .eq("teacher_id",id)
   ]);
 
-  if((studentCount||0)>0||(scheduleCount||0)>0){
+  if(
+    (scheduleCount||0)>0||
+    (classCount||0)>0||
+    (makeupCount||0)>0
+  ){
     return NextResponse.json(
       {
         ok:false,
-        message:"학생 또는 시간표가 연결된 반은 삭제할 수 없습니다. 먼저 학생을 제외하고 시간표 연결을 정리해주세요."
+        message:"시간표·주담당 반·보강 기록이 연결된 선생님은 삭제할 수 없습니다. 비활성으로 변경해주세요."
       },
       {status:409}
     );
   }
 
   const {error}=await db
-    .from("classes")
+    .from("teachers")
     .delete()
     .eq("id",id);
 
   if(error){
-    console.error("class delete:",error);
+    console.error("teacher delete:",error);
 
     return NextResponse.json(
-      {ok:false,message:"반 삭제에 실패했습니다."},
+      {ok:false,message:"선생님 삭제에 실패했습니다."},
       {status:500}
     );
   }

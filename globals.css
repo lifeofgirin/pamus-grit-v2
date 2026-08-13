@@ -5823,3 +5823,31 @@ body {
     font-size: 6px !important;
   }
 }
+
+
+/* v18.3.9.2 선생님 주간 상단 직접 프린트 버튼 */
+.weekly-direct-print-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #cfd8e8;
+  border-radius: 10px;
+  background: #202939;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+@media(max-width:650px){
+  .weekly-direct-print-button {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
+}
+
+@media print {
+  .weekly-direct-print-button {
+    display: none !important;
+  }
+}

@@ -2156,7 +2156,15 @@ if(cleanedDays.length&&!dayGridDate){
        <button onClick={()=>loadWeek(add(weekStart||weekBase,-7))}>‹ 지난주</button>
        <button onClick={()=>loadWeek(date)}>{tr('이번주','This Week')}</button>
        <button onClick={()=>loadWeek(add(weekStart||weekBase,7))}>다음주 ›</button>
-     <button className="add-day-class-button" onClick={()=>openAddLesson(weekStart||date)}>+ {tr('수업 추가','Add Class')}</button></div>
+       <button className="add-day-class-button" onClick={()=>openAddLesson(weekStart||date)}>+ {tr('수업 추가','Add Class')}</button>
+       <button
+         type="button"
+         className="weekly-direct-print-button"
+         onClick={printCurrentSchedule}
+       >
+         🖨 {tr('A4 인쇄','A4 Print')}
+       </button>
+     </div>
    </div>
 
    <div className="print-toolbar no-print">

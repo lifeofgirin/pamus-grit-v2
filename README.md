@@ -1,9 +1,14 @@
-# Pamus Grit v2 - v18.3.9.1
+# Pamus Grit v2 - v18.3.9.2
 
-Vercel build 오류 수정:
-- layout.tsx의 `./components/PwaRegister` import 제거
-- PWA service worker 등록을 `next/script`로 layout.tsx 내부 처리
-- app/components/PwaRegister.tsx 의존성 제거
+## 선생님 주간 프린트 버튼 확실히 복구
 
-기능 변경 없음.
+선생님 주간 화면의 상단 버튼 줄에 직접 표시:
+지난주 / 이번주 / 다음주 / + 수업 추가 / 🖨 A4 인쇄
+
+기존 별도 프린트 툴바와 별개로 상단에 직접 버튼을 넣어서
+선생님 레이아웃 분기와 관계없이 항상 보이도록 수정했습니다.
+
+주간 섹션에 printable-schedule 클래스도 보강하여
+printCurrentSchedule() 실행 시 실제 주간 시간표가 인쇄 대상으로 잡히게 했습니다.
+
 SQL 추가 없음.

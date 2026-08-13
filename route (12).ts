@@ -1,344 +1,564 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getKoreaDate } from "@/lib/korea-time";
 
-async function requireAdmin(){
-  const session=await getCurrentSession();
-  return session?.role==="admin" ? session : null;
-}
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function text(v:any){
-  return String(v??"").trim();
-}
-
-function makeTeacherCode(existing:string[]){
-  const nums=existing
-    .map(code=>/^T(\d+)$/.exec(code))
-    .filter(Boolean)
-    .map(match=>Number((match as RegExpExecArray)[1]))
-    .filter(Number.isFinite);
-
-  const next=(nums.length?Math.max(...nums):0)+1;
-  return `T${String(next).padStart(3,"0")}`;
-}
-
-export async function GET(){
-  const session=await requireAdmin();
-
-  if(!session){
-    return NextResponse.json(
-      {ok:false,message:"관리자 전용입니다."},
-      {status:403}
-    );
-  }
-
-  const db=getSupabaseAdmin();
-
+function parseDateParts(
+  date: string
+) {
   const [
-    {data:teachers,error:teacherError},
-    {data:schedules,error:scheduleError},
-    {data:classes,error:classError},
-    {data:credentials,error:credentialError}
-  ]=await Promise.all([
-    db
-      .from("teachers")
-      .select("id,teacher_code,teacher_name,is_active")
-      .order("teacher_code",{ascending:true}),
-    db
-      .from("schedules")
-      .select("id,teacher_id")
-      .eq("is_active",true),
-    db
-      .from("classes")
-      .select("id,primary_teacher_id"),
-    db
-      .from("login_credentials")
-      .select("teacher_id,is_active")
-      .eq("role","teacher")
-  ]);
+    year,
+    month,
+    day,
+  ] = date
+    .split("-")
+    .map(Number);
 
-  if(teacherError||scheduleError||classError||credentialError){
-    console.error(
-      "admin teachers:",
-      teacherError,
-      scheduleError,
-      classError,
-      credentialError
-    );
-
-    return NextResponse.json(
-      {ok:false,message:"선생님관리 데이터를 불러오지 못했습니다."},
-      {status:500}
-    );
-  }
-
-  const scheduleCounts=new Map<string,number>();
-  const primaryClassCounts=new Map<string,number>();
-  const loginMap=new Map<string,boolean>();
-
-  (schedules||[]).forEach((row:any)=>{
-    if(!row.teacher_id)return;
-    scheduleCounts.set(
-      row.teacher_id,
-      (scheduleCounts.get(row.teacher_id)||0)+1
-    );
-  });
-
-  (classes||[]).forEach((row:any)=>{
-    if(!row.primary_teacher_id)return;
-    primaryClassCounts.set(
-      row.primary_teacher_id,
-      (primaryClassCounts.get(row.primary_teacher_id)||0)+1
-    );
-  });
-
-  (credentials||[]).forEach((row:any)=>{
-    if(!row.teacher_id)return;
-    loginMap.set(row.teacher_id,Boolean(row.is_active));
-  });
-
-  return NextResponse.json({
-    ok:true,
-    teachers:(teachers||[]).map((teacher:any)=>({
-      ...teacher,
-      schedule_count:scheduleCounts.get(teacher.id)||0,
-      primary_class_count:primaryClassCounts.get(teacher.id)||0,
-      has_login:loginMap.has(teacher.id),
-      login_active:loginMap.get(teacher.id)??false
-    }))
-  });
+  return {
+    year,
+    month,
+    day,
+  };
 }
 
-export async function POST(req:Request){
-  const session=await requireAdmin();
+function toUtcDate(
+  date: string
+) {
+  const {
+    year,
+    month,
+    day,
+  } = parseDateParts(date);
 
-  if(!session){
-    return NextResponse.json(
-      {ok:false,message:"관리자 전용입니다."},
-      {status:403}
-    );
-  }
+  return new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
+  );
+}
 
-  const body=await req.json();
-  const teacherName=text(body.teacherName);
-  const pin=text(body.pin);
+function addDays(
+  date: Date,
+  amount: number
+) {
+  const next =
+    new Date(date);
 
-  if(!teacherName){
-    return NextResponse.json(
-      {ok:false,message:"선생님 이름을 입력해주세요."},
-      {status:400}
-    );
-  }
-
-  if(!/^\d{4,8}$/.test(pin)){
-    return NextResponse.json(
-      {ok:false,message:"PIN은 숫자 4~8자리로 입력해주세요."},
-      {status:400}
-    );
-  }
-
-  const db=getSupabaseAdmin();
-
-  const {data:existing,error:existingError}=await db
-    .from("teachers")
-    .select("teacher_code");
-
-  if(existingError){
-    return NextResponse.json(
-      {ok:false,message:"선생님 코드를 생성하지 못했습니다."},
-      {status:500}
-    );
-  }
-
-  const teacherCode=
-    text(body.teacherCode)||
-    makeTeacherCode(
-      (existing||[]).map((row:any)=>String(row.teacher_code||""))
-    );
-
-  const {data:teacher,error:insertError}=await db
-    .from("teachers")
-    .insert({
-      teacher_code:teacherCode,
-      teacher_name:teacherName,
-      is_active:true
-    })
-    .select("id,teacher_code,teacher_name,is_active")
-    .single();
-
-  if(insertError||!teacher){
-    console.error("teacher insert:",insertError);
-
-    return NextResponse.json(
-      {ok:false,message:"선생님 등록에 실패했습니다. 선생님 코드 중복 여부를 확인해주세요."},
-      {status:500}
-    );
-  }
-
-  const {error:pinError}=await db.rpc(
-    "set_teacher_login_pin",
-    {
-      input_teacher_id:teacher.id,
-      input_teacher_code:teacher.teacher_code,
-      input_display_name:teacher.teacher_name,
-      input_pin:pin,
-      input_is_active:true
-    }
+  next.setUTCDate(
+    next.getUTCDate() +
+      amount
   );
 
-  if(pinError){
-    console.error("teacher pin create:",pinError);
-
-    await db
-      .from("teachers")
-      .delete()
-      .eq("id",teacher.id);
-
-    return NextResponse.json(
-      {ok:false,message:"PIN 생성에 실패했습니다. 12차 DB SQL을 먼저 실행해주세요."},
-      {status:500}
-    );
-  }
-
-  return NextResponse.json({
-    ok:true,
-    teacher
-  });
+  return next;
 }
 
-export async function PUT(req:Request){
-  const session=await requireAdmin();
+function toDateKey(
+  date: Date
+) {
+  return [
+    date.getUTCFullYear(),
+    String(
+      date.getUTCMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      date.getUTCDate()
+    ).padStart(2, "0"),
+  ].join("-");
+}
 
-  if(!session){
-    return NextResponse.json(
-      {ok:false,message:"관리자 전용입니다."},
-      {status:403}
-    );
-  }
+function getMonday(
+  baseDate: string
+) {
+  const date =
+    toUtcDate(baseDate);
 
-  const body=await req.json();
-  const id=text(body.id);
-  const teacherName=text(body.teacherName);
-  const teacherCode=text(body.teacherCode);
-  const isActive=body.isActive!==false;
+  const day =
+    date.getUTCDay();
 
-  if(!id||!teacherName||!teacherCode){
-    return NextResponse.json(
-      {ok:false,message:"선생님 정보를 확인해주세요."},
-      {status:400}
-    );
-  }
+  const offset =
+    day === 0
+      ? -6
+      : 1 - day;
 
-  const db=getSupabaseAdmin();
-
-  const {error:updateError}=await db
-    .from("teachers")
-    .update({
-      teacher_code:teacherCode,
-      teacher_name:teacherName,
-      is_active:isActive
-    })
-    .eq("id",id);
-
-  if(updateError){
-    console.error("teacher update:",updateError);
-
-    return NextResponse.json(
-      {ok:false,message:"선생님 정보 수정에 실패했습니다."},
-      {status:500}
-    );
-  }
-
-  const {error:syncError}=await db.rpc(
-    "sync_teacher_login_profile",
-    {
-      input_teacher_id:id,
-      input_teacher_code:teacherCode,
-      input_display_name:teacherName,
-      input_is_active:isActive
-    }
+  return addDays(
+    date,
+    offset
   );
-
-  if(syncError){
-    console.error("teacher login sync:",syncError);
-
-    return NextResponse.json(
-      {ok:false,message:"선생님 정보는 수정됐지만 로그인 정보 동기화에 실패했습니다. 12차 DB SQL을 확인해주세요."},
-      {status:500}
-    );
-  }
-
-  return NextResponse.json({ok:true});
 }
 
-export async function DELETE(req:Request){
-  const session=await requireAdmin();
+export async function GET(request: Request) {
+  try {
+    const session = await getCurrentSession();
 
-  if(!session){
-    return NextResponse.json(
-      {ok:false,message:"관리자 전용입니다."},
-      {status:403}
+    if (!session) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const url = new URL(request.url);
+    const classId = String(
+      url.searchParams.get("classId") || ""
+    ).trim();
+
+    const baseDate =
+      url.searchParams.get("date") ||
+      getKoreaDate().date;
+
+    if (!classId) {
+      return NextResponse.json(
+        { ok: false, message: "반을 선택해주세요." },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    if (session.role === "teacher") {
+      if (!session.teacherId) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "선생님 정보가 없습니다.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const {
+        data: accessSchedule,
+        error: accessError,
+      } = await supabase
+        .from("schedules")
+        .select("id")
+        .eq("class_id", classId)
+        .eq(
+          "teacher_id",
+          session.teacherId
+        )
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (accessError) {
+        throw accessError;
+      }
+
+      if (!accessSchedule) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "본인이 담당하는 반만 확인할 수 있습니다.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const monday = getMonday(baseDate);
+
+    const days = Array.from(
+      { length: 5 },
+      (_, index) => ({
+        date: toDateKey(addDays(monday, index)),
+        dayOfWeek: index + 1,
+      })
     );
-  }
 
-  const body=await req.json();
-  const id=text(body.id);
+    const weekStart = days[0].date;
+    const weekEnd = days[4].date;
 
-  if(!id){
-    return NextResponse.json(
-      {ok:false,message:"삭제할 선생님이 없습니다."},
-      {status:400}
+    const [
+      classResult,
+      schedulesResult,
+      changesResult,
+      recordsResult,
+      makeupsResult,
+      makeupRecordsResult,
+    ] = await Promise.all([
+      supabase
+        .from("classes")
+        .select("id, class_code, class_name")
+        .eq("id", classId)
+        .maybeSingle(),
+
+      supabase
+        .from("schedules")
+        .select(`
+          id,
+          schedule_code,
+          class_id,
+          day_of_week,
+          start_time,
+          end_time,
+          subject,
+          room,
+          teacher_id,
+          valid_from,
+          valid_to,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .eq("class_id", classId)
+        .eq("is_active", true)
+        .lte("valid_from",weekEnd)
+        .or(`valid_to.is.null,valid_to.gte.${weekStart}`)
+        .in("day_of_week", [1, 2, 3, 4, 5])
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true }),
+
+      supabase
+        .from("daily_schedule_changes")
+        .select(`
+          id,
+          schedule_id,
+          change_date,
+          status,
+          start_time,
+          end_time,
+          subject,
+          room,
+          teacher_id,
+          memo,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .gte("change_date", weekStart)
+        .lte("change_date", weekEnd),
+
+      Promise.resolve({
+        data: [],
+        error: null,
+      }),
+
+      supabase
+        .from("makeup_lessons")
+        .select(`
+          id,
+          makeup_date,
+          title,
+          start_time,
+          end_time,
+          subject,
+          room,
+          teacher_id,
+          class_id,
+          memo,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .gte("makeup_date",weekStart)
+        .lte("makeup_date",weekEnd),
+
+      supabase
+        .from("makeup_lesson_records")
+        .select(`
+          makeup_lesson_id,
+          class_id,
+          lesson_date,
+          teacher_id,
+          progress,
+          homework,
+          lesson_memo,
+          teachers (
+            teacher_code,
+            teacher_name
+          )
+        `)
+        .gte("lesson_date",weekStart)
+        .lte("lesson_date",weekEnd),
+    ]);
+
+    if (classResult.error) throw classResult.error;
+    if (schedulesResult.error) throw schedulesResult.error;
+    if (changesResult.error) throw changesResult.error;
+    if (makeupsResult.error) throw makeupsResult.error;
+    if (makeupRecordsResult.error) throw makeupRecordsResult.error;
+
+    if (!classResult.data) {
+      return NextResponse.json(
+        { ok: false, message: "반 정보를 찾을 수 없습니다." },
+        { status: 404 }
+      );
+    }
+
+    const schedules = schedulesResult.data || [];
+    const changes = changesResult.data || [];
+
+    const className =
+      String(classResult.data?.class_name || "").trim();
+
+    /*
+     * 추가수업/보강은 v18.3.6 이후 class_id로 연결한다.
+     * 그 이전에 만들어진 보강은 class_id가 비어 있을 수 있으므로,
+     * title이 반 이름과 같은 기존 데이터도 해당 반 수업으로 복구한다.
+     */
+    const makeups = (makeupsResult.data || []).filter(
+      (makeup:any) =>
+        makeup.class_id === classId ||
+        (
+          !makeup.class_id &&
+          className &&
+          String(makeup.title || "").trim() === className
+        )
     );
-  }
 
-  const db=getSupabaseAdmin();
+    const relevantMakeupIds = new Set(
+      makeups.map((makeup:any)=>makeup.id)
+    );
 
-  const [
-    {count:scheduleCount},
-    {count:classCount},
-    {count:makeupCount}
-  ]=await Promise.all([
-    db
-      .from("schedules")
-      .select("id",{count:"exact",head:true})
-      .eq("teacher_id",id),
-    db
-      .from("classes")
-      .select("id",{count:"exact",head:true})
-      .eq("primary_teacher_id",id),
-    db
-      .from("makeup_lessons")
-      .select("id",{count:"exact",head:true})
-      .eq("teacher_id",id)
-  ]);
+    const makeupRecords = (makeupRecordsResult.data || []).filter(
+      (record:any) =>
+        record.class_id === classId ||
+        relevantMakeupIds.has(record.makeup_lesson_id)
+    );
 
-  if(
-    (scheduleCount||0)>0||
-    (classCount||0)>0||
-    (makeupCount||0)>0
-  ){
+    /*
+     * v7.1:
+     * 반별 요약은 lesson_records.class_id를 믿지 않는다.
+     * 기존 저장 기록 중 class_id가 비어 있어도 잡히도록
+     * 이 반의 schedule_id 목록으로 기록을 조회한다.
+     */
+    const scheduleIds = schedules.map(
+      (schedule: any) => schedule.id
+    );
+
+    let records: any[] = [];
+
+    if (scheduleIds.length) {
+      const recordsByScheduleResult =
+        await supabase
+          .from("lesson_records")
+          .select(`
+            schedule_id,
+            class_id,
+            lesson_date,
+            teacher_id,
+            progress,
+            homework,
+            lesson_memo,
+            teachers (
+              teacher_code,
+              teacher_name
+            )
+          `)
+          .in("schedule_id", scheduleIds)
+          .gte("lesson_date", weekStart)
+          .lte("lesson_date", weekEnd)
+          .order("lesson_date", {
+            ascending: true,
+          });
+
+      if (recordsByScheduleResult.error) {
+        throw recordsByScheduleResult.error;
+      }
+
+      records =
+        recordsByScheduleResult.data || [];
+    }
+
+    const changeMap = new Map<string, any>();
+
+    for (const change of changes) {
+      changeMap.set(
+        `${change.schedule_id}__${change.change_date}`,
+        change
+      );
+    }
+
+    const scheduleMap = new Map(
+      schedules.map((schedule: any) => [
+        schedule.id,
+        schedule,
+      ])
+    );
+
+    const responseDays = days.map((day) => {
+      const lessons = schedules
+        .filter(
+          (schedule: any) =>
+            schedule.day_of_week === day.dayOfWeek &&
+            schedule.valid_from<=day.date &&
+            (
+              !schedule.valid_to ||
+              schedule.valid_to>=day.date
+            )
+        )
+        .map((schedule: any) => {
+          const change = changeMap.get(
+            `${schedule.id}__${day.date}`
+          );
+
+          const teacher =
+            change?.teacher_id
+              ? change.teachers
+              : schedule.teachers;
+
+          return {
+            id: schedule.id,
+            schedule_code: schedule.schedule_code,
+            lessonDate: day.date,
+
+            start_time:
+              change?.start_time ||
+              schedule.start_time,
+
+            end_time:
+              change?.end_time ||
+              schedule.end_time,
+
+            subject:
+              change?.subject ??
+              schedule.subject,
+
+            room:
+              change?.room ??
+              schedule.room,
+
+            teacher_id:
+              change?.teacher_id ||
+              schedule.teacher_id,
+
+            teachers: teacher,
+
+            operationStatus:
+              change?.status || "정상",
+
+            operationMemo:
+              change?.memo || "",
+          };
+        })
+        .concat(
+          makeups
+            .filter((makeup:any)=>makeup.makeup_date===day.date)
+            .map((makeup:any)=>({
+              id:`makeup_${makeup.id}`,
+              makeupId:makeup.id,
+              schedule_code:`MAKEUP_${makeup.id}`,
+              class_id:makeup.class_id,
+              lessonDate:day.date,
+              start_time:makeup.start_time,
+              end_time:makeup.end_time,
+              subject:makeup.subject||"추가수업",
+              room:makeup.room,
+              teacher_id:makeup.teacher_id,
+              teachers:makeup.teachers,
+              operationStatus:"보강",
+              operationMemo:makeup.memo||"",
+              isCustomMakeup:true
+            }))
+        )
+        .sort((a: any, b: any) =>
+          String(a.start_time).localeCompare(
+            String(b.start_time)
+          )
+        );
+
+      return {
+        ...day,
+        lessons,
+      };
+    });
+
+    const summaryRecords = records.map((record: any) => {
+      const schedule = scheduleMap.get(
+        record.schedule_id
+      ) as any;
+
+      return {
+        schedule_id: record.schedule_id,
+        lesson_date: record.lesson_date,
+
+        teacher_name:
+          record.teachers?.teacher_name ||
+          schedule?.teachers?.teacher_name ||
+          "선생님 미지정",
+
+        subject:
+          schedule?.subject || "",
+
+        progress:
+          record.progress || "",
+
+        homework:
+          record.homework || "",
+
+        lesson_memo:
+          record.lesson_memo || "",
+      };
+    });
+
+    const makeupMap = new Map(
+      makeups.map((makeup:any)=>[makeup.id,makeup])
+    );
+
+    summaryRecords.push(
+      ...makeupRecords.map((record:any)=>{
+        const makeup:any=
+          makeupMap.get(record.makeup_lesson_id);
+
+        return {
+          schedule_id:`makeup_${record.makeup_lesson_id}`,
+          lesson_date:record.lesson_date,
+
+          teacher_name:
+            record.teachers?.teacher_name ||
+            makeup?.teachers?.teacher_name ||
+            "선생님 미지정",
+
+          subject:
+            makeup?.subject || "추가수업",
+
+          progress:
+            record.progress || "",
+
+          homework:
+            record.homework || "",
+
+          lesson_memo:
+            record.lesson_memo || "",
+        };
+      })
+    );
+
+    summaryRecords.sort((a:any,b:any)=>
+      String(a.lesson_date).localeCompare(String(b.lesson_date))
+    );
+
+    return NextResponse.json({
+      ok: true,
+      classInfo: classResult.data,
+      weekStart,
+      weekEnd,
+      days: responseDays,
+      records: summaryRecords,
+    });
+  } catch (error) {
+    console.error("class-week:", error);
+
     return NextResponse.json(
       {
-        ok:false,
-        message:"시간표·주담당 반·보강 기록이 연결된 선생님은 삭제할 수 없습니다. 비활성으로 변경해주세요."
+        ok: false,
+        message:
+          "반별 주간 정보를 불러오지 못했습니다.",
       },
-      {status:409}
+      { status: 500 }
     );
   }
-
-  const {error}=await db
-    .from("teachers")
-    .delete()
-    .eq("id",id);
-
-  if(error){
-    console.error("teacher delete:",error);
-
-    return NextResponse.json(
-      {ok:false,message:"선생님 삭제에 실패했습니다."},
-      {status:500}
-    );
-  }
-
-  return NextResponse.json({ok:true});
 }
