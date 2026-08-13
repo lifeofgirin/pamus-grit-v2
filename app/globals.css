@@ -5069,3 +5069,85 @@ body {
     display: none !important;
   }
 }
+
+
+/* =========================================
+   v18.3.4 휴강 숨김 + 모바일 당일변경 + 공강 대체수업
+========================================= */
+.cancel-hide-note {
+  margin: -2px 0 4px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: #fff4f4;
+  color: #b54a54;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.replacement-info {
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 10px;
+  background: #f1f6ff;
+  border: 1px solid #dbe7ff;
+}
+
+.replacement-info strong {
+  color: #3658ad;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.replacement-info span {
+  color: #7483a3;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+@media(max-width:650px){
+  .admin-modal {
+    width: calc(100vw - 18px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+  }
+
+  .admin-form label {
+    font-size: 12px !important;
+  }
+
+  .admin-form input,
+  .admin-form select,
+  .admin-form textarea {
+    min-height: 44px !important;
+    font-size: 13px !important;
+  }
+
+  .admin-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 8px;
+    background: #fff;
+  }
+
+  .admin-actions button,
+  .admin-form .save-button.wide {
+    min-height: 46px !important;
+    font-size: 12px !important;
+  }
+
+  .cancel-hide-note {
+    font-size: 11px;
+  }
+
+  .replacement-info strong {
+    font-size: 13px;
+  }
+
+  .replacement-info span {
+    font-size: 10px;
+  }
+}
