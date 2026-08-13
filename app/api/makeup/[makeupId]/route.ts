@@ -105,7 +105,6 @@ export async function GET(
           registered_grade
         `)
         .eq("class_id",makeup.class_id)
-        .eq("status","재원")
         .order("student_name",{ascending:true})
       :Promise.resolve({data:[],error:null});
 

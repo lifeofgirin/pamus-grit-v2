@@ -92,7 +92,6 @@ export async function GET(
           registered_grade
         `)
         .eq("class_id", schedule.class_id)
-        .eq("status", "재원")
         .order("student_name", { ascending: true }),
 
       supabase

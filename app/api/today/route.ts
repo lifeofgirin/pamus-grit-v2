@@ -61,8 +61,7 @@ export async function GET() {
           ? supabase
               .from("students")
               .select("id, class_id")
-              .eq("status", "재원")
-              .in("class_id", classIds)
+                  .in("class_id", classIds)
           : Promise.resolve({
               data: [],
               error: null,
