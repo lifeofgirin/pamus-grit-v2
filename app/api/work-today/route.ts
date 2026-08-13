@@ -68,7 +68,7 @@ export async function GET() {
     let makeupAttendanceData: any[] = [];
     let studentsData: any[] = [];
 
-    const jobs: Promise<any>[] = [];
+    const jobs: PromiseLike<any>[] = [];
 
     if (scheduleIds.length) {
       jobs.push(
@@ -154,7 +154,7 @@ export async function GET() {
       );
     }
 
-    await Promise.all(jobs);
+    await Promise.all(jobs.map(job => Promise.resolve(job)));
 
     const regularRecordMap = new Map(
       recordsData.map((record: any) => [
