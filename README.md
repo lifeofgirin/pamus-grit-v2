@@ -1,17 +1,27 @@
-# Pamus Grit v2 - v18.3.7.4.1
+# Pamus Grit v2 - v18.3.8
 
-## Vercel TypeScript 빌드 오류 수정
+## 관리자 요일시간표 B안 - 겹침수업 묶음형
 
-오류:
-`PromiseLike<any>` is not assignable to `Promise<any>`
+1004 관리자 `요일시간표`에서 같은 강의실 수업이
+시간상 조금이라도 겹치면 하나의 블럭으로 묶습니다.
 
-원인:
-Supabase query builder의 `.then()` 반환형이 PromiseLike인데
-work-today에서 `Promise<any>[]` 배열로 선언함.
+예:
+14:40 ~ 16:00
+- Princeton B - Lina
+  14:40 - 15:10
+- Cornell B - Lina
+  15:00 - 15:20
+- Berkeley M - Lina
+  15:20 - 16:00
 
-수정:
-- jobs 타입을 `PromiseLike<any>[]`로 변경
-- Promise.all 호출 전에 `Promise.resolve()`로 정규화
+동작:
+- 묶음 전체는 실제 겹침 구간의 시작~마지막 종료시간 길이로 표시
+- 각 수업은 묶음 안에서 별도 줄
+- 각 줄 클릭 → 해당 수업 열기
+- 정규수업 우클릭 → 당일변경/휴강
+- 당일 추가수업도 동일한 묶음 규칙 적용
+- 휴강은 숨김
+- 프린트에도 동일 적용
 
-기능 변경 없음.
+기존 관리자 업무현황 수정(v18.3.7.4.1) 포함.
 SQL 추가 없음.

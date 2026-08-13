@@ -5673,3 +5673,153 @@ body {
     font-size: 7px !important;
   }
 }
+
+
+/* =========================================
+   v18.3.8 관리자 요일시간표 B안
+   부분 겹침까지 한 블럭으로 묶기
+========================================= */
+
+.day-grid-overlap-group {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  z-index: 3;
+  min-height: 54px;
+  overflow: hidden;
+  border: 1px solid #ccd9ff;
+  border-radius: 10px;
+  background: #edf3ff;
+  box-shadow: 0 2px 7px rgba(47,67,108,.07);
+}
+
+.day-grid-overlap-group.multi {
+  padding: 6px;
+  background: #f3f6ff;
+  border-color: #c6d4fb;
+}
+
+.day-grid-group-range {
+  margin: 0 0 5px;
+  padding: 0 2px 5px;
+  border-bottom: 1px solid #d9e2f7;
+  color: #566987;
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.day-grid-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-grid-group-item {
+  width: 100%;
+  min-height: 0;
+  padding: 5px 6px;
+  display: block;
+  border: 0;
+  border-radius: 7px;
+  background: #eaf1ff;
+  color: #2d426f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-grid-overlap-group:not(.multi) .day-grid-group-item {
+  height: 100%;
+  min-height: 52px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  background: transparent;
+}
+
+.day-grid-group-item + .day-grid-group-item {
+  border-top: 1px solid rgba(177,194,232,.7);
+}
+
+.day-grid-group-item.makeup {
+  background: #eaf8ef;
+  color: #33714b;
+}
+
+.day-grid-overlap-group:not(.multi) .day-grid-group-item.makeup {
+  background: #edf9f1;
+}
+
+.day-grid-group-item .day-grid-class-teacher {
+  width: 100%;
+}
+
+.day-grid-group-item .day-grid-card-time {
+  display: block;
+  margin-top: 2px;
+}
+
+.day-grid-overlap-group.multi .day-grid-class-teacher b {
+  font-size: 10px !important;
+}
+
+.day-grid-overlap-group.multi .day-grid-card-time {
+  font-size: 9px !important;
+}
+
+@media(max-width:650px){
+  .day-grid-overlap-group {
+    left: 4px;
+    right: 4px;
+  }
+
+  .day-grid-overlap-group.multi {
+    padding: 5px;
+  }
+
+  .day-grid-group-range {
+    font-size: 8px;
+  }
+
+  .day-grid-overlap-group.multi .day-grid-class-teacher b {
+    font-size: 9px !important;
+  }
+
+  .day-grid-overlap-group.multi .day-grid-card-time {
+    font-size: 8px !important;
+  }
+}
+
+@media print {
+  .day-grid-overlap-group {
+    left: 2px !important;
+    right: 2px !important;
+    box-shadow: none !important;
+  }
+
+  .day-grid-overlap-group.multi {
+    padding: 3px !important;
+  }
+
+  .day-grid-group-range {
+    margin-bottom: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 6px !important;
+  }
+
+  .day-grid-group-items {
+    gap: 1px !important;
+  }
+
+  .day-grid-group-item {
+    padding: 2px 3px !important;
+  }
+
+  .day-grid-group-item .day-grid-class-teacher b {
+    font-size: 6.5px !important;
+  }
+
+  .day-grid-group-item .day-grid-card-time {
+    font-size: 6px !important;
+  }
+}

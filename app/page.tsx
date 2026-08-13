@@ -308,19 +308,66 @@ export default function Home(){
    return weekDays.find((d:any)=>d.date===target)||weekDays[0]||null;
  },[weekDays,dayGridDate]);
 
+ function buildOverlapGroups(items:any[]){
+   const sorted=[...items].sort((a:any,b:any)=>
+     toMinutes(a.start_time)-toMinutes(b.start_time) ||
+     toMinutes(a.end_time)-toMinutes(b.end_time)
+   );
+
+   const groups:any[]=[];
+   let current:any=null;
+
+   for(const lesson of sorted){
+     const start=toMinutes(lesson.start_time);
+     const end=toMinutes(lesson.end_time);
+
+     if(!current){
+       current={
+         start,
+         end,
+         lessons:[lesson]
+       };
+       continue;
+     }
+
+     // B안: 조금이라도 시간대가 겹치면 같은 묶음
+     // 15:00 시작 / 기존 그룹 15:00 종료도 붙여서 한 흐름으로 묶음
+     if(start<=current.end){
+       current.lessons.push(lesson);
+       current.end=Math.max(current.end,end);
+     }else{
+       groups.push(current);
+       current={
+         start,
+         end,
+         lessons:[lesson]
+       };
+     }
+   }
+
+   if(current)groups.push(current);
+
+   return groups;
+ }
+
  const dayGridGroups=useMemo(()=>{
    const dayLessons=(selectedDayGrid?.lessons||[]).filter(
      (l:any)=>l.operationStatus!=='휴강'
    );
 
-   return ROOMS.map(roomName=>({
-     room:roomName,
-     lessons:dayLessons
+   return ROOMS.map(roomName=>{
+     const roomLessons=dayLessons
        .filter((l:any)=>room(l.room)===roomName)
        .sort((a:any,b:any)=>
          String(a.start_time||'').localeCompare(String(b.start_time||''))
-       )
-   }));
+       );
+
+     return{
+       room:roomName,
+       lessons:roomLessons,
+       overlapGroups:buildOverlapGroups(roomLessons)
+     };
+   });
  },[selectedDayGrid]);
 
  function openDayGridDate(target:string){
@@ -2318,32 +2365,52 @@ if(cleanedDays.length&&!dayGridDate){
                />
              ))}
 
-             {g.lessons.map((l:any)=>(
-               <button
-                 type="button"
-                 key={`${l.schedule_code}_${l.lessonDate}`}
-                 className={`day-grid-lesson ${statusClass(l)}`}
+             {g.overlapGroups.map((group:any,index:number)=>(
+               <div
+                 key={`${g.room}_group_${index}_${group.start}_${group.end}`}
+                 className={`day-grid-overlap-group ${group.lessons.length>1?'multi':''}`}
                  style={{
-                   top:Math.max(0,(toMinutes(l.start_time)-TT_START)*DAY_GRID_PX_PER_MIN),
-                   height:Math.max(54,(toMinutes(l.end_time)-toMinutes(l.start_time))*DAY_GRID_PX_PER_MIN)
-                 }}
-                 onClick={()=>openAdminLesson(l)}
-                 onContextMenu={e=>{
-                   if(!l.isCustomMakeup){
-                     e.preventDefault();
-                     openChange(l);
-                   }
+                   top:Math.max(0,(group.start-TT_START)*DAY_GRID_PX_PER_MIN),
+                   height:Math.max(
+                     54,
+                     (group.end-group.start)*DAY_GRID_PX_PER_MIN
+                   )
                  }}
                >
-                 <div className="day-grid-class-teacher">
-                   <b>{classDisplayName(l.classes?.class_name)}</b>
-                   <span>-</span>
-                   <b>{teacherDisplayName(l.teachers?.teacher_name)}</b>
+                 {group.lessons.length>1&&
+                   <div className="day-grid-group-range">
+                     {String(Math.floor(group.start/60)).padStart(2,'0')}:{String(group.start%60).padStart(2,'0')}
+                     {' ~ '}
+                     {String(Math.floor(group.end/60)).padStart(2,'0')}:{String(group.end%60).padStart(2,'0')}
+                   </div>
+                 }
+
+                 <div className="day-grid-group-items">
+                   {group.lessons.map((l:any)=>(
+                     <button
+                       type="button"
+                       key={`${l.schedule_code}_${l.lessonDate}`}
+                       className={`day-grid-group-item ${statusClass(l)}`}
+                       onClick={()=>openAdminLesson(l)}
+                       onContextMenu={e=>{
+                         if(!l.isCustomMakeup){
+                           e.preventDefault();
+                           openChange(l);
+                         }
+                       }}
+                     >
+                       <div className="day-grid-class-teacher">
+                         <b>{classDisplayName(l.classes?.class_name)}</b>
+                         <span>-</span>
+                         <b>{teacherDisplayName(l.teachers?.teacher_name)}</b>
+                       </div>
+                       <strong className="day-grid-card-time">
+                         {l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}
+                       </strong>
+                     </button>
+                   ))}
                  </div>
-                 <strong className="day-grid-card-time">
-                   {l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}
-                 </strong>
-               </button>
+               </div>
              ))}
            </div>
          ))}
