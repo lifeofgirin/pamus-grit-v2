@@ -5151,3 +5151,43 @@ body {
     font-size: 10px;
   }
 }
+
+
+/* =========================================
+   v18.3.5 주간 당일 수업 추가
+========================================= */
+.add-day-class-button {
+  border-color: #cbd8ff !important;
+  background: #eef3ff !important;
+  color: #315bd6 !important;
+  font-weight: 950 !important;
+}
+
+.day-add-class {
+  width: 25px !important;
+  min-width: 25px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  margin-left: 5px !important;
+  padding: 0 !important;
+  border: 1px solid #d9e2ff !important;
+  border-radius: 999px !important;
+  background: #f4f7ff !important;
+  color: #4164c9 !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+}
+
+@media(max-width:650px){
+  .add-day-class-button {
+    min-height: 40px !important;
+    font-size: 10px !important;
+  }
+
+  .day-add-class {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
