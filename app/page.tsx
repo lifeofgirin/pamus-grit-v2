@@ -1948,109 +1948,7 @@ if(cleanedDays.length&&!dayGridDate){
       ?`${user.displayName} 오늘 업무`
       :view==='weekly'
         ?`${user.displayName} 주간 수업`
-        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='dayGrid'?(selectedDayGrid?fmt(selectedDayGrid.date):''):view==='dayGrid'?<section className="schedule-panel day-grid-panel">
-   <div className="section-head day-grid-head">
-     <div>
-       <div className="section-kicker">ADMIN DAY GRID</div>
-       <h2>요일별 강의실 시간표</h2>
-     </div>
-     <div className="day-grid-week-nav">
-       <button onClick={()=>loadWeek(add(weekBase,-7))}>← 지난주</button>
-       <button onClick={()=>loadWeek(date)}>이번주</button>
-       <button onClick={()=>loadWeek(add(weekBase,7))}>다음주 →</button>
-     </div>
-   </div>
-
-   <div className="day-grid-day-tabs">
-     {weekDays.map((d:any)=>(
-       <button
-         type="button"
-         key={d.date}
-         className={dayGridDate===d.date?'active':''}
-         onClick={()=>openDayGridDate(d.date)}
-       >
-         <strong>{['','월','화','수','목','금'][d.dayOfWeek]||''}</strong>
-         <span>{short(d.date)}</span>
-       </button>
-     ))}
-   </div>
-
-   {selectedDayGrid?<>
-     {selectedDayGrid.events?.length>0&&
-       <div className="day-grid-events">
-         {selectedDayGrid.events.map((e:any)=>(
-           <span key={e.id}>{e.event_type} · {e.title}</span>
-         ))}
-       </div>
-     }
-
-     <div className="day-grid-scroll">
-       <div className="day-grid-table">
-         <div className="day-grid-time-head">TIME</div>
-
-         {ROOMS.map(r=>(
-           <div className="day-grid-room-head" key={`head_${r}`}>{r}</div>
-         ))}
-
-         <div
-           className="day-grid-time-axis"
-           style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
-         >
-           {TT_HOURS.map(hour=>(
-             <div
-               className="day-grid-time-label"
-               key={hour}
-               style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
-             >
-               {String(hour).padStart(2,'0')}:00
-             </div>
-           ))}
-         </div>
-
-         {dayGridGroups.map((g:any)=>(
-           <div
-             className="day-grid-room-column"
-             key={g.room}
-             style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
-           >
-             {TT_HOURS.map(hour=>(
-               <div
-                 className="day-grid-hour-line"
-                 key={`${g.room}_${hour}`}
-                 style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
-               />
-             ))}
-
-             {g.lessons.map((l:any)=>(
-               <button
-                 type="button"
-                 key={`${l.schedule_code}_${l.lessonDate}`}
-                 className={`day-grid-lesson ${statusClass(l)}`}
-                 style={{
-                   top:ttTop(l.start_time),
-                   height:ttHeight(l.start_time,l.end_time)
-                 }}
-                 onClick={()=>openAdminLesson(l)}
-                 onContextMenu={e=>{
-                   if(!l.isCustomMakeup){
-                     e.preventDefault();
-                     openChange(l);
-                   }
-                 }}
-               >
-                 <strong>{l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}</strong>
-                 <b>{classDisplayName(l.classes?.class_name)}</b>
-                 <span>{l.subject}</span>
-                 <small>{teacherDisplayName(l.teachers?.teacher_name)}</small>
-               </button>
-             ))}
-           </div>
-         ))}
-       </div>
-     </div>
-   </>:<div className="weekly-state-box">주간 시간표를 불러오는 중입니다.</div>}
- </section>
- :view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:view==='teachers'?`${adminTeachers.length}명 등록`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='dayGrid'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():view==='teachers'?loadTeachers():loadClassWeek(weekBase)}>↻ 새로고침</button>{user.role==='teacher'&&
+        :`${user.displayName} 반별 기록`)}</h1><div className="date-text">{view==='daily'?fmt(date):view==='dayGrid'?(selectedDayGrid?fmt(selectedDayGrid.date):''):view==='monthly'?monthTitle(monthBase||monthKeyFromDate(date)):view==='students'?`${adminStudents.length}명 등록`:view==='classes'?`${adminClasses.length}개 반`:view==='teachers'?`${adminTeachers.length}명 등록`:`${short(weekStart)} ~ ${short(weekEnd)}`}</div></div><div className="top-actions"><button className="refresh-button" onClick={()=>view==='daily'?loadToday():view==='work'?loadWork():view==='weekly'?loadWeek(weekBase):view==='dayGrid'?loadWeek(weekBase):view==='monthly'?loadMonth(monthBase):view==='students'?loadStudents():view==='classes'?loadClasses():view==='teachers'?loadTeachers():loadClassWeek(weekBase)}>↻ 새로고침</button>{user.role==='teacher'&&
  <div className="teacher-lang-toggle" role="group" aria-label="Language">
   <button
    type="button"
@@ -2071,7 +1969,7 @@ if(cleanedDays.length&&!dayGridDate){
   <div className="view-tabs"><button className={`view-tab ${view==='daily'?'active':''}`} onClick={()=>switchView('daily')}>{tr('오늘','Today')}</button><button className={`view-tab ${view==='work'?'active':''}`} onClick={()=>switchView('work')}>{tr('업무','Tasks')}</button><button className={`view-tab ${view==='weekly'?'active':''}`} onClick={()=>switchView('weekly')}>{tr('주간','Weekly')}</button>{user.role==='admin'&&<button className={`view-tab ${view==='dayGrid'?'active':''}`} onClick={()=>switchView('dayGrid')}>요일시간표</button>}{user.role==='admin'&&<button className={`view-tab ${view==='monthly'?'active':''}`} onClick={()=>switchView('monthly')}>월간</button>}{user.role==='admin'&&<button className={`view-tab ${view==='students'?'active':''}`} onClick={()=>switchView('students')}>학생관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='classes'?'active':''}`} onClick={()=>switchView('classes')}>반관리</button>}{user.role==='admin'&&<button className={`view-tab ${view==='teachers'?'active':''}`} onClick={()=>switchView('teachers')}>선생님관리</button>}<button className={`view-tab ${view==='classWeekly'?'active':''}`} onClick={()=>switchView('classWeekly')}>{tr('반별','Classes')}</button></div>
   {view!=='students'&&view!=='classes'&&view!=='teachers'&&<div className="admin-tools"><button onClick={openMakeup}>{tr('+ 보강 추가','+ Add Make-up')}</button>{user.role==='admin'&&<button onClick={()=>openEventForDate(view==='monthly'&&monthBase?`${monthBase}-01`:date)}>+ 학원 일정</button>}</div>}
   {view==='daily'&&events.length>0&&<div className="event-strip">{events.map(e=><div key={e.id} className={`event-chip type-${e.event_type}`}><strong>{e.event_type}</strong><span>{e.title}</span>{e.teachers?.teacher_name&&<small>{e.teachers.teacher_name}</small>}</div>)}</div>}
-  {view!=='monthly'&&view!=='students'&&view!=='classes'&&view!=='teachers'&&<section className="summary-strip"><div><span>{view==='daily'?tr('오늘 수업','Today Classes'):view==='work'?tr('오늘 업무','Today Tasks'):view==='weekly'?tr('이번 주 수업','This Week Classes'):view==='dayGrid'?'선택 요일 수업':tr('선택 반','Selected Class')}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?tr('미완료 수업','Incomplete'):tr('업무 미완료','Incomplete Tasks')}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):view==='dayGrid'?(selectedDayGrid?.lessons?.length||0):(classWeekData?.records?.length||0)}</strong></div><div><span>{tr('계정','Account')}</span><strong>{user.role==='admin'?'관리자':teacherDisplayName(user.displayName)}</strong></div></section>}
+  {view!=='monthly'&&view!=='students'&&view!=='classes'&&view!=='teachers'&&<section className="summary-strip"><div><span>{view==='daily'?tr('오늘 수업','Today Classes'):view==='work'?tr('오늘 업무','Today Tasks'):view==='weekly'?tr('이번 주 수업','This Week Classes'):view==='dayGrid'?'선택 요일 수업':tr('선택 반','Selected Class')}</span><strong>{view==='daily'?lessons.length:view==='work'?(workData?.summary?.totalLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.length,0):view==='dayGrid'?(selectedDayGrid?.lessons?.length||0):(classWeekData?.classInfo?.class_name||'-')}</strong></div><div><span>{view==='classWeekly'?'작성 기록':view==='work'?tr('미완료 수업','Incomplete'):tr('업무 미완료','Incomplete Tasks')}</span><strong className="pending-number">{view==='daily'?pending:view==='work'?(workData?.summary?.pendingLessons||0):view==='weekly'?weekDays.reduce((a,d)=>a+d.lessons.filter(l=>!l.progressDone||!l.homeworkDone||!l.attendanceDone).length,0):view==='dayGrid'?(selectedDayGrid?.lessons?.length||0):(classWeekData?.records?.length||0)}</strong></div><div><span>{tr('계정','Account')}</span><strong>{user.role==='admin'?'관리자':teacherDisplayName(user.displayName)}</strong></div></section>}
   {view==='daily'?(user.role==='admin'?<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">ADMIN DAILY</div><h2>강의실별 오늘 시간표</h2></div></div><div className="room-board">{groups.map(g=><section className="room-column" key={g.room}><div className="room-head"><strong>{g.room}</strong><span>{g.lessons.length}개</span></div><div className="room-lessons">{g.lessons.length?g.lessons.map(l=><button key={l.schedule_code} className={`lesson-card ${statusClass(l)}`} onClick={()=>openAdminLesson(l)} onContextMenu={e=>{if(!l.isCustomMakeup){e.preventDefault();openChange(l)}}}><div className="lesson-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="lesson-name">{classDisplayName(l.classes?.class_name)}</div><div className="lesson-subject">{l.subject}</div><div className="teacher-chip">{teacherDisplayName(l.teachers?.teacher_name)}</div><div className="op-badge">{statusDisplayName(l.operationStatus)}</div></button>):<div className="room-empty">{tr('수업 없음','No Class')}</div>}</div></section>)}</div><div className="admin-hint">관리자: PC 클릭 = 수업 작성 · 우클릭 = 당일 변경/휴강 · 모바일 탭 = 당일 변경/휴강</div></section>
   :<section className="schedule-panel"><div className="section-head"><div><div className="section-kicker">MY DAILY</div><h2>{tr('오늘 내 수업','My Classes Today')}</h2></div></div><div className="teacher-daily-list">{lessons.length?lessons.map(l=><button key={l.schedule_code} className={`teacher-daily-card ${statusClass(l)}`} onClick={()=>openLesson(l)}><div className="teacher-daily-time"><strong>{l.start_time?.slice(0,5)}</strong><span>~ {l.end_time?.slice(0,5)}</span></div><div className="teacher-daily-main"><strong>{classDisplayName(l.classes?.class_name)}</strong><span>{l.subject} · {room(l.room)}</span></div><div className="op-badge">{statusDisplayName(l.operationStatus)}</div></button>):<div className="empty-state">{tr('오늘 예정된 수업이 없습니다.','No classes scheduled today.')}</div>}</div></section>)
   :view==='work'?<section className="schedule-panel work-panel">
@@ -2340,7 +2238,107 @@ if(cleanedDays.length&&!dayGridDate){
            </div>
          </div>
    )}
-  </section>:view==='monthly'?<section className="schedule-panel monthly-panel">
+  </section>:view==='dayGrid'?<section className="schedule-panel day-grid-panel">
+   <div className="section-head day-grid-head">
+     <div>
+       <div className="section-kicker">ADMIN DAY GRID</div>
+       <h2>요일별 강의실 시간표</h2>
+     </div>
+     <div className="day-grid-week-nav">
+       <button onClick={()=>loadWeek(add(weekBase,-7))}>← 지난주</button>
+       <button onClick={()=>loadWeek(date)}>이번주</button>
+       <button onClick={()=>loadWeek(add(weekBase,7))}>다음주 →</button>
+     </div>
+   </div>
+
+   <div className="day-grid-day-tabs">
+     {weekDays.map((d:any)=>(
+       <button
+         type="button"
+         key={d.date}
+         className={dayGridDate===d.date?'active':''}
+         onClick={()=>openDayGridDate(d.date)}
+       >
+         <strong>{['','월','화','수','목','금'][d.dayOfWeek]||''}</strong>
+         <span>{short(d.date)}</span>
+       </button>
+     ))}
+   </div>
+
+   {selectedDayGrid?<>
+     {selectedDayGrid.events?.length>0&&
+       <div className="day-grid-events">
+         {selectedDayGrid.events.map((e:any)=>(
+           <span key={e.id}>{e.event_type} · {e.title}</span>
+         ))}
+       </div>
+     }
+
+     <div className="day-grid-scroll">
+       <div className="day-grid-table">
+         <div className="day-grid-time-head">TIME</div>
+         {ROOMS.map(r=>(
+           <div className="day-grid-room-head" key={`head_${r}`}>{r}</div>
+         ))}
+
+         <div
+           className="day-grid-time-axis"
+           style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
+         >
+           {TT_HOURS.map(hour=>(
+             <div
+               className="day-grid-time-label"
+               key={hour}
+               style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+             >
+               {String(hour).padStart(2,'0')}:00
+             </div>
+           ))}
+         </div>
+
+         {dayGridGroups.map((g:any)=>(
+           <div
+             className="day-grid-room-column"
+             key={g.room}
+             style={{height:(TT_END-TT_START)*TT_PX_PER_MIN}}
+           >
+             {TT_HOURS.map(hour=>(
+               <div
+                 className="day-grid-hour-line"
+                 key={`${g.room}_${hour}`}
+                 style={{top:(hour*60-TT_START)*TT_PX_PER_MIN}}
+               />
+             ))}
+
+             {g.lessons.map((l:any)=>(
+               <button
+                 type="button"
+                 key={`${l.schedule_code}_${l.lessonDate}`}
+                 className={`day-grid-lesson ${statusClass(l)}`}
+                 style={{
+                   top:ttTop(l.start_time),
+                   height:ttHeight(l.start_time,l.end_time)
+                 }}
+                 onClick={()=>openAdminLesson(l)}
+                 onContextMenu={e=>{
+                   if(!l.isCustomMakeup){
+                     e.preventDefault();
+                     openChange(l);
+                   }
+                 }}
+               >
+                 <strong>{l.start_time?.slice(0,5)} - {l.end_time?.slice(0,5)}</strong>
+                 <b>{classDisplayName(l.classes?.class_name)}</b>
+                 <span>{l.subject}</span>
+                 <small>{teacherDisplayName(l.teachers?.teacher_name)}</small>
+               </button>
+             ))}
+           </div>
+         ))}
+       </div>
+     </div>
+   </>:<div className="weekly-state-box">주간 시간표를 불러오는 중입니다.</div>}
+ </section>:view==='monthly'?<section className="schedule-panel monthly-panel">
    <div className="monthly-toolbar">
      <div>
        <div className="section-kicker">ACADEMY CALENDAR</div>
